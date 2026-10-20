@@ -838,6 +838,12 @@ switch (MODULE_SYSTEM_LAUNCH.kind) {
 	case ModuleSystemLaunchDecision.DISABLED_BY_REQUEST:
 		if (HAS_OFFLINE_RENDERER) {
 			await import(MAIN_PROCESS_ENTRY_URL);
+			if (MODULE_SYSTEM_LAUNCH.kind === ModuleSystemLaunchDecision.DISABLED_BY_BUILD) {
+				const {armBundledRendererShellUpdates} = await import('@electron/main/ForkShellUpdate');
+				void armBundledRendererShellUpdates().catch((error: unknown) => {
+					process.stderr.write(`Failed to arm shell self-updates: ${String(error)}\n`);
+				});
+			}
 		} else {
 			void refuseUnsupportedBuild('the module system is turned off and this build carries no offline renderer').catch(
 				(error: unknown) => {
