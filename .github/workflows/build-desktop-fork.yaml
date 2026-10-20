@@ -1,0 +1,391 @@
+name: build desktop (fork)
+
+# Builds an unsigned Windows x64 desktop app for this fork and publishes it as a
+# GitHub Release. The release is also the app's update feed: the shell checks
+# releases/latest/download for `latest` and the Velopack `releases.win.json`.
+#
+# Trigger: push a tag named v<YYYY>.<MDD>.<HHMMSS> (UTC, no leading zeroes in MDD
+# or HHMMSS), e.g. v2026.1020.150000. The tag is the build version.
+#
+# Differences from build-desktop.yaml: no code signing, no desktop module system
+# (FLUXER_MODULES stays unset, so the app runs the renderer bundled in the
+# installer), Windows x64 only.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-fork-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CHANNEL: stable
+  BUILD_CHANNEL: stable
+  RELEASE_CHANNEL: stable
+  PUBLIC_RELEASE_CHANNEL: stable
+
+jobs:
+  meta:
+    name: Resolve build metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      pub_date: ${{ steps.meta.outputs.pub_date }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - name: Set metadata from tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if ! [[ "$version" =~ ^[0-9]{4}\.[1-9][0-9]{2,3}\.(0|[1-9][0-9]{0,5})$ ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME is not v<YYYY>.<MDD>.<HHMMSS> without leading zeroes"
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "source_sha=$GITHUB_SHA"
+          } >> "$GITHUB_OUTPUT"
+
+  shared_assets:
+    name: Build shared renderer assets
+    needs:
+      - meta
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}
+    steps:
+      - name: Checkout CI helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+          path: _ci
+
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+          path: source
+
+      - name: Set up Rust toolchain (renderer wasm)
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+          targets: wasm32-unknown-unknown
+
+      - name: Set workdir (Unix)
+        env:
+          SUBST_TARGET: ${{ github.workspace }}/source
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step set_workdir_unix
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 26
+
+      - name: Set up pnpm
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step setup_pnpm
+
+      - name: Resolve pnpm store path (Unix)
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step resolve_pnpm_store_unix
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-shared-renderer-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-shared-renderer-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step install_dependencies
+
+      - name: Update version
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step update_version
+
+      - name: Set build channel
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step set_build_channel
+
+      - name: Build shared renderer assets
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step build_shared_assets
+
+      - name: Prepare shared renderer artifact
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step prepare_shared_assets
+
+      - name: Upload shared renderer artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-shared-${{ needs.meta.outputs.version }}
+          path: source/desktop-shared-assets
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  build_windows:
+    name: Build Windows (x64)
+    needs:
+      - meta
+      - shared_assets
+    runs-on: windows-2025
+    timeout-minutes: 180
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUB_DATE: ${{ needs.meta.outputs.pub_date }}
+      SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}
+      DESKTOP_PLATFORM: windows
+      DESKTOP_ARCH: x64
+      PLATFORM: windows
+      ARCH: x64
+      ELECTRON_ARCH: x64
+    steps:
+      - name: Checkout CI helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+          path: _ci
+
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+          path: source
+
+      - name: Set up Rust toolchain (CI helpers)
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+
+      - name: Ensure python3 command
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step ensure_python3_windows
+
+      - name: Shorten Windows paths and pin pnpm store
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step windows_paths
+        env:
+          SUBST_TARGET: ${{ github.workspace }}/source
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 26
+
+      - name: Set up pnpm
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step setup_pnpm
+
+      - name: Resolve pnpm store path
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step resolve_pnpm_store_windows
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-x64-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-x64-pnpm-store-
+
+      - name: Set up MSVC env
+        uses: TheMrMilchmann/setup-msvc-dev@368ef7d1ee4d1171b31d4a7f67f4d954f903f5a9
+        with:
+          arch: amd64
+
+      - name: Set up Rust toolchain (Windows)
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step install_rust_windows_targets
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step install_dependencies
+
+      - name: Update version
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step update_version
+
+      - name: Set build channel
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step set_build_channel
+
+      - name: Download shared renderer artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: desktop-shared-${{ needs.meta.outputs.version }}
+          path: source/desktop-shared-assets
+
+      - name: Restore shared renderer assets
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step restore_shared_assets
+
+      # The build_electron_main CI step always sets FLUXER_MODULES=1. This fork ships
+      # the renderer inside the app instead, so run the same build without it.
+      - name: Build Electron main process (bundled renderer)
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        env:
+          NODE_ENV: production
+          FLUXER_DESKTOP_PRODUCTION: "true"
+        run: pnpm build --use-shared-renderer
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Velopack CLI
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step install_velopack_cli
+
+      - name: Build Electron app
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        env:
+          TEMP: C:\t
+          TMP: C:\t
+          ELECTRON_BUILDER_CACHE: C:\ebcache
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step build_app_windows
+
+      - name: Resolve unpacked Windows app directory
+        id: unpacked
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          cargo run --locked --quiet --manifest-path ${{ github.workspace }}/_ci/tools/ci/Cargo.toml -- build-desktop
+          --step resolve_windows_unpacked_dir
+
+      # Same vpk invocation as package_app_windows_velopack, without --azureTrustedSignFile.
+      - name: Package with Velopack (unsigned)
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        shell: pwsh
+        env:
+          UNPACKED_DIR: ${{ steps.unpacked.outputs.unpacked_dir }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = 'dist-electron/velopack-windows-x64'
+          if (Test-Path $out) { Remove-Item -Recurse -Force $out }
+          & ./.velopack/vpk.exe --yes pack `
+            --packId fluxer_desktop `
+            --packVersion $env:VERSION `
+            --packDir $env:UNPACKED_DIR `
+            --mainExe Fluxer.exe `
+            --packTitle Fluxer `
+            --packAuthors "Fluxer (pedroneto1209 fork)" `
+            --shortcuts 'Desktop,StartMenu' `
+            --runtime win-x64 `
+            --icon build_resources/icons-stable/icon.ico `
+            --outputDir $out `
+            --delta None
+          if ($LASTEXITCODE -ne 0) { throw "vpk pack failed with exit code $LASTEXITCODE" }
+          Get-ChildItem $out | Format-Table Name, Length
+
+      - name: Stage release assets
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = 'dist-electron/velopack-windows-x64'
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'release-assets'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Get-ChildItem $out -File | Where-Object { $_.Extension -ne '.zip' } | Copy-Item -Destination $stage
+          $setup = Get-ChildItem $stage -Filter '*-Setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'Velopack produced no Setup.exe' }
+          Rename-Item $setup.FullName 'Fluxer-Setup.exe'
+          $setupPath = Join-Path $stage 'Fluxer-Setup.exe'
+          $sha = (Get-FileHash $setupPath -Algorithm SHA256).Hash.ToLower()
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$env:VERSION/Fluxer-Setup.exe"
+          $latest = [ordered]@{
+            version = $env:VERSION
+            pub_date = $env:PUB_DATE
+            files = [ordered]@{ setup = [ordered]@{ url = $url; sha256 = $sha } }
+          }
+          $latest | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM (Join-Path $stage 'latest')
+          Get-ChildItem $stage | Format-Table Name, Length
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-windows-x64-${{ needs.meta.outputs.version }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - meta
+      - build_windows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: desktop-windows-x64-${{ needs.meta.outputs.version }}
+          path: release-assets
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Fluxer $VERSION (fork)" \
+            --notes "Unsigned Windows x64 build of ${GITHUB_SHA::12}. Run Fluxer-Setup.exe to install; installed copies update themselves from this repository's latest release." \
+            --latest

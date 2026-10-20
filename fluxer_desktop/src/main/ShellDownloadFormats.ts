@@ -16,6 +16,10 @@ const CHANNEL_PACKAGE_ORIGINS: Record<BuildChannel, string> = {
 	development: 'http://localhost:48780',
 };
 
+// Fork builds update from this repository's GitHub Releases. Release assets are flat,
+// so the feed is the "latest release" download root rather than a channel/platform path.
+const FORK_UPDATE_BASE_URL = 'https://github.com/pedroneto1209/fluxer/releases/latest/download';
+
 export function resolveDesktopPackageOrigin(): string {
 	const override = process.env?.[PACKAGE_ORIGIN_ENV];
 	if (override == null || override.trim().length === 0) {
@@ -25,6 +29,10 @@ export function resolveDesktopPackageOrigin(): string {
 }
 
 export function getUpdateBaseUrl(platform: NodeJS.Platform = process.platform): string {
+	const override = process.env?.[PACKAGE_ORIGIN_ENV];
+	if (BUILD_CHANNEL === 'stable' && (override == null || override.trim().length === 0)) {
+		return FORK_UPDATE_BASE_URL;
+	}
 	return `${resolveDesktopPackageOrigin()}/desktop/${BUILD_CHANNEL}/${platform}/${DESKTOP_DOWNLOAD_ARCH}`;
 }
 
