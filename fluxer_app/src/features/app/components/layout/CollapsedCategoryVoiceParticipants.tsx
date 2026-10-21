@@ -3,6 +3,7 @@
 import styles from '@app/features/app/components/layout/CollapsedCategoryVoiceParticipants.module.css';
 import type {Channel} from '@app/features/channel/models/Channel';
 import type {Guild} from '@app/features/guild/models/Guild';
+import {MusicSidebarRow} from '@app/features/music/MusicSidebarRow';
 import {AvatarStack} from '@app/features/ui/avatars/AvatarStack';
 import {StackUserAvatar} from '@app/features/ui/avatars/StackUserAvatar';
 import type {User} from '@app/features/user/models/User';
@@ -138,6 +139,11 @@ export const CollapsedChannelAvatarStack = observer(({guild, channel}: {guild: G
 					/>
 				)}
 				data-flx="app.collapsed-category-voice-participants.collapsed-channel-avatar-stack.avatar-stack"
+			/>
+			<MusicSidebarRow
+				guildId={guild.id}
+				channel={channel}
+				data-flx="app.collapsed-category-voice-participants.collapsed-channel-avatar-stack.music-sidebar-row"
 			/>
 		</div>
 	);
