@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {AttentionOverlay} from '@app/features/attention/AttentionOverlay';
+import AttentionStore from '@app/features/attention/AttentionStore';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
@@ -40,6 +41,9 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 			}),
 		[],
 	);
+
+	// Nudges ("chamar atenção") arrive as data messages in the call.
+	useEffect(() => (room ? AttentionStore.bindRoom(room) : undefined), [room]);
 
 	useEffect(() => {
 		if (!room || components) {

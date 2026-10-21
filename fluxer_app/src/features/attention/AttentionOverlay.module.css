@@ -8,21 +8,26 @@
 	align-items: center;
 	justify-content: center;
 	padding: var(--spacing-4);
-	background-color: rgb(0 0 0 / 0.45);
+	background-color: rgb(0 0 0 / 0.6);
 	animation: fadeIn 0.15s ease-out;
 }
 
-.card {
+.stage {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: var(--spacing-3);
+	max-width: 100%;
+	animation: nudge 0.5s ease-in-out;
+}
+
+/* A nudge without a clip is a small card. */
+.card {
 	max-width: min(36rem, 100%);
 	padding: var(--spacing-4);
 	border-radius: var(--radius-lg);
 	background-color: var(--background-primary);
 	box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 0.45);
-	animation: nudge 0.5s ease-in-out;
 }
 
 .title {
@@ -37,18 +42,32 @@
 	color: var(--status-danger);
 }
 
+/* Clips play at 80% of the window, scaled to fit without cropping. */
+.videoFrame {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 80vw;
+	height: min(80vh, calc(100vh - 7rem));
+}
+
 .video {
 	display: block;
-	max-width: 100%;
-	max-height: 60vh;
-	border-radius: var(--radius-lg);
-	background-color: #000;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 }
 
 .hint {
 	margin: 0;
 	color: var(--text-tertiary);
 	font-size: 0.75rem;
+}
+
+.title.onBackdrop,
+.hint.onBackdrop {
+	color: #fff;
+	text-shadow: 0 0.0625rem 0.25rem rgb(0 0 0 / 0.8);
 }
 
 @keyframes fadeIn {
@@ -78,7 +97,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.card,
+	.stage,
 	.backdrop {
 		animation: none;
 	}

@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// "Chamar atenção": send an MSN-style nudge (optionally with an animation) to a friend,
-// and play the ones sent to us: bring the app to the front, shake it, show the clip.
+// "Chamar atenção": send an MSN-style nudge (optionally with an animation) to someone in
+// the same call, and play the ones sent to us: bring the app to the front, shake it,
+// show the clip.
 
-import {Endpoints} from '@app/features/app/constants/Endpoints';
 import {
-	formatAttentionMessage,
-	parseAttentionMessage,
+	ATTENTION_DATA_TOPIC,
+	decodeAttentionPayload,
+	encodeAttentionPayload,
 } from '@app/features/attention/AttentionProtocol';
-import {ensureDMChannel} from '@app/features/channel/commands/PrivateChannelCommands';
-import Channels from '@app/features/channel/state/Channels';
 import SessionManager from '@app/features/platform/state/AuthSession';
-import {http} from '@app/features/platform/transport/RestTransport';
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import {getElectronAPI} from '@app/features/ui/utils/NativeUtils';
+import Users from '@app/features/user/state/Users';
+import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
+import {isVoiceMeshRoom} from '@app/features/voice/engine/mesh/VoiceMeshRoom';
 import {type AttentionWink, listWinks} from '@app/features/voice/soundboard/SoundboardApi';
-import {ChannelTypes} from '@fluxer/constants/src/ChannelConstants';
-import type {Message} from '@fluxer/schema/src/domains/message/MessageResponseSchemas';
+import {parseVoiceParticipantIdentity} from '@app/features/voice/utils/VoiceParticipantIdentity';
+import {type Participant, type Room, RoomEvent} from 'livekit-client';
 import {makeAutoObservable, runInAction} from 'mobx';
 
 const logger = new Logger('AttentionStore');
 
 const SEND_COOLDOWN_MS = 10_000;
-const MAX_MESSAGE_AGE_MS = 60_000;
 const WINK_CATALOG_TTL_MS = 5 * 60_000;
 
 export interface ActiveAttention {
@@ -38,14 +38,12 @@ class AttentionStore {
 	active: ActiveAttention | null = null;
 	private winksLoadedAt = 0;
 	private lastSentTo = new Map<string, number>();
-	private seenMessageIds = new Set<string>();
 	private nextKey = 1;
 
 	constructor() {
-		makeAutoObservable<AttentionStore, 'winksLoadedAt' | 'lastSentTo' | 'seenMessageIds' | 'nextKey'>(this, {
+		makeAutoObservable<AttentionStore, 'winksLoadedAt' | 'lastSentTo' | 'nextKey'>(this, {
 			winksLoadedAt: false,
 			lastSentTo: false,
-			seenMessageIds: false,
 			nextKey: false,
 		});
 	}
@@ -83,16 +81,32 @@ class AttentionStore {
 		return Math.max(0, last + SEND_COOLDOWN_MS - Date.now());
 	}
 
+	// Sent as a LiveKit data message to every connection the user has in our call, so
+	// nothing shows up in any chat.
 	async send(userId: string, wink: AttentionWink | null): Promise<void> {
 		const remaining = this.cooldownRemainingMs(userId);
 		if (remaining > 0) {
 			throw new Error(`Espere ${Math.ceil(remaining / 1000)}s para chamar a atenção de novo.`);
 		}
+		const room = MediaEngine.room;
+		if (!room || !MediaEngine.connected) {
+			throw new Error('Entre na chamada para chamar a atenção de alguém.');
+		}
+		if (isVoiceMeshRoom(room)) {
+			throw new Error('Chamar atenção não funciona em chamadas ponto a ponto.');
+		}
+		const destinationIdentities = Array.from(room.remoteParticipants.values())
+			.map((participant) => participant.identity)
+			.filter((identity) => parseVoiceParticipantIdentity(identity).userId === userId);
+		if (destinationIdentities.length === 0) {
+			throw new Error('Essa pessoa não está mais na chamada.');
+		}
 		this.lastSentTo.set(userId, Date.now());
 		try {
-			const channelId = await ensureDMChannel(userId);
-			await http.post(Endpoints.CHANNEL_MESSAGES(channelId), {
-				body: {content: formatAttentionMessage(wink?.name ?? null)},
+			await room.localParticipant.publishData(encodeAttentionPayload(wink?.id ?? null), {
+				reliable: true,
+				topic: ATTENTION_DATA_TOPIC,
+				destinationIdentities,
 			});
 		} catch (error) {
 			this.lastSentTo.delete(userId);
@@ -100,23 +114,33 @@ class AttentionStore {
 		}
 	}
 
-	handleIncoming(message: Message): void {
-		const parsed = parseAttentionMessage(message.content);
-		if (!parsed) return;
-		const me = SessionManager.userId;
-		if (!me || message.author?.id === me) return;
-		const channel = Channels.getChannel(message.channel_id);
-		if (message.guild_id || (channel && channel.type !== ChannelTypes.DM)) return;
-		if (this.seenMessageIds.has(message.id)) return;
-		this.seenMessageIds.add(message.id);
-		const sentAt = Date.parse(message.timestamp);
-		if (Number.isFinite(sentAt) && Date.now() - sentAt > MAX_MESSAGE_AGE_MS) return;
+	bindRoom(room: Room): () => void {
+		const onDataReceived = (
+			payload: Uint8Array,
+			participant: Participant | undefined,
+			_kind: unknown,
+			topic?: string,
+		): void => {
+			if (topic !== ATTENTION_DATA_TOPIC || !participant) return;
+			const decoded = decodeAttentionPayload(payload);
+			if (!decoded) return;
+			this.handleIncoming(participant, decoded.winkId);
+		};
+		room.on(RoomEvent.DataReceived, onDataReceived);
+		return () => {
+			room.off(RoomEvent.DataReceived, onDataReceived);
+		};
+	}
+
+	private handleIncoming(participant: Participant, winkId: string | null): void {
+		const {userId} = parseVoiceParticipantIdentity(participant.identity);
+		if (!userId || userId === SessionManager.userId) return;
 		if (this.active) return;
 
-		const senderName = message.author.global_name || message.author.username || 'Alguém';
+		const senderName = Users.getUser(userId)?.displayName || participant.name || 'Alguém';
 		getElectronAPI()?.windowBringToFront?.({shake: true});
 		void this.loadWinks().then((winks) => {
-			const wink = parsed.winkName ? (winks.find((candidate) => candidate.name === parsed.winkName) ?? null) : null;
+			const wink = winkId ? (winks.find((candidate) => candidate.id === winkId) ?? null) : null;
 			runInAction(() => {
 				if (this.active) return;
 				this.active = {key: this.nextKey++, senderName, wink};

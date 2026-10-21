@@ -7,8 +7,8 @@ import {BellRingingIcon} from '@phosphor-icons/react';
 import type React from 'react';
 import {useCallback} from 'react';
 
-// Shown inside rows that are themselves buttons (member list, DM list), so it is a
-// span with button semantics rather than a nested <button>.
+// Shown on call tiles, which are themselves clickable, so it is a span with button
+// semantics rather than a nested <button>.
 export const AttentionButton = ({user}: {user: User}) => {
 	const open = useCallback(
 		(event: React.SyntheticEvent) => {

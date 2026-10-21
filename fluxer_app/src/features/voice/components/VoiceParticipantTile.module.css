@@ -449,3 +449,20 @@
 		display: none;
 	}
 }
+
+/* "Chamar atenção" bell, revealed while the tile is hovered or focused. */
+.attentionCorner {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	z-index: 12;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.12s ease;
+}
+
+:hover > .attentionCorner,
+:focus-within > .attentionCorner {
+	opacity: 1;
+	pointer-events: auto;
+}

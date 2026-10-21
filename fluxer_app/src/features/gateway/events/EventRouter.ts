@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {ATTENTION_MESSAGE_PREFIX} from '@app/features/attention/AttentionProtocol';
 import {handleChannelCreate} from '@app/features/channel/events/ChannelCreate';
 import {handleChannelDelete} from '@app/features/channel/events/ChannelDelete';
 import {handleChannelPinsAck} from '@app/features/channel/events/ChannelPinsAck';
@@ -79,7 +78,6 @@ import {handleEntranceSoundPlay} from '@app/features/voice/events/EntranceSoundP
 import {handleVoiceServerUpdate} from '@app/features/voice/events/VoiceServerUpdate';
 import {handleVoiceSignal} from '@app/features/voice/events/VoiceSignal';
 import {handleVoiceStateUpdate} from '@app/features/voice/events/VoiceStateUpdate';
-import type {Message} from '@fluxer/schema/src/domains/message/MessageResponseSchemas';
 
 export interface GatewayGeoipPayload {
 	country_code?: string;
@@ -149,15 +147,7 @@ export function createHandlerRegistry(): GatewayHandlerRegistry {
 	registry.set('CHANNEL_PINS_ACK', handleChannelPinsAck as GatewayEventHandler);
 	registry.set('CHANNEL_RECIPIENT_ADD', handleChannelRecipientAdd as GatewayEventHandler);
 	registry.set('CHANNEL_RECIPIENT_REMOVE', handleChannelRecipientRemove as GatewayEventHandler);
-	registry.set('MESSAGE_CREATE', ((data: Message, context: GatewayHandlerContext) => {
-		handleMessageCreate(data, context);
-		// "Chamar atenção" nudges are plain DMs with a fixed prefix; only those load the handler.
-		if (typeof data?.content === 'string' && data.content.startsWith(ATTENTION_MESSAGE_PREFIX)) {
-			void import('@app/features/attention/AttentionStore').then(({default: AttentionStore}) =>
-				AttentionStore.handleIncoming(data),
-			);
-		}
-	}) as GatewayEventHandler);
+	registry.set('MESSAGE_CREATE', handleMessageCreate as GatewayEventHandler);
 	registry.set('MESSAGE_UPDATE', handleMessageUpdate as GatewayEventHandler);
 	registry.set('MESSAGE_DELETE', handleMessageDelete as GatewayEventHandler);
 	registry.set('MESSAGE_DELETE_BULK', handleMessageDeleteBulk as GatewayEventHandler);

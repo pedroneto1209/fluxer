@@ -5,6 +5,7 @@ import AttentionStore, {type ActiveAttention} from '@app/features/attention/Atte
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import {fetchWinkVideo} from '@app/features/voice/soundboard/SoundboardApi';
 import {BellRingingIcon} from '@phosphor-icons/react';
+import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
@@ -63,6 +64,7 @@ const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
 		return () => window.removeEventListener('keydown', onKeyDown);
 	}, [close]);
 
+	const hasClip = attention.wink != null;
 	return (
 		<div
 			className={styles.backdrop}
@@ -71,21 +73,25 @@ const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
 			aria-label={`${attention.senderName} chamou a sua atenção`}
 			data-flx="attention.overlay.backdrop"
 		>
-			<div className={styles.card} data-flx="attention.overlay.card">
-				<p className={styles.title} data-flx="attention.overlay.title">
+			<div className={clsx(styles.stage, !hasClip && styles.card)} data-flx="attention.overlay.stage">
+				<p className={clsx(styles.title, hasClip && styles.onBackdrop)} data-flx="attention.overlay.title">
 					<BellRingingIcon weight="fill" className={styles.bell} /> {attention.senderName} chamou a sua atenção!
 				</p>
-				{videoUrl && (
-					<video
-						ref={videoRef}
-						className={styles.video}
-						src={videoUrl}
-						playsInline
-						onEnded={() => setTimeout(close, 400)}
-						data-flx="attention.overlay.video"
-					/>
+				{hasClip && (
+					<div className={styles.videoFrame} data-flx="attention.overlay.video-frame">
+						{videoUrl && (
+							<video
+								ref={videoRef}
+								className={styles.video}
+								src={videoUrl}
+								playsInline
+								onEnded={() => setTimeout(close, 400)}
+								data-flx="attention.overlay.video"
+							/>
+						)}
+					</div>
 				)}
-				<p className={styles.hint} data-flx="attention.overlay.hint">
+				<p className={clsx(styles.hint, hasClip && styles.onBackdrop)} data-flx="attention.overlay.hint">
 					Clique ou aperte Esc para fechar
 				</p>
 			</div>
