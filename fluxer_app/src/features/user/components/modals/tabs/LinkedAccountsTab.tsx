@@ -16,6 +16,7 @@ import {EditConnectionModal} from '@app/features/connection/components/modals/Ed
 import type {Connection} from '@app/features/connection/models/Connection';
 import UserConnection from '@app/features/connection/state/UserConnection';
 import {CONNECTIONS_DESCRIPTOR, DOMAIN_DESCRIPTOR} from '@app/features/i18n/utils/CommonMessageDescriptors';
+import {SpotifyConnectionSection} from '@app/features/music/SpotifyConnectionSection';
 import {StreamerModeGate} from '@app/features/streamer_mode/components/StreamerModeGate';
 import StreamerMode from '@app/features/streamer_mode/state/StreamerMode';
 import {remFromPx} from '@app/features/theme/layout/RemFromPx';
@@ -446,6 +447,7 @@ const LinkedAccountsTab: React.FC = observer(() => {
 						</DndProvider>
 					)}
 				</SettingsSection>
+				<SpotifyConnectionSection data-flx="user.linked-accounts-tab.spotify-connection-section" />
 			</SettingsTabContent>
 		</SettingsTabContainer>
 	);
