@@ -301,7 +301,8 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 		: getVoiceDeafenedStatusLabel(i18n, isCurrentUser);
 	const deafenStatusClassName = isModeratorDeafened ? styles.participantIconRed : styles.participantIconMuted;
 	const isActuallySpeaking = displayState.speaking;
-	const shouldAnimateTileAvatar = isActuallySpeaking && !Accessibility.useReducedMotion;
+	// Animated (GIF) avatars keep playing in the call view, not only while speaking.
+	const shouldAnimateTileAvatar = !Accessibility.useReducedMotion;
 	const isMobileExperience = isMobileExperienceEnabled();
 	const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
 	const tileGroup = useVoiceTileGroup();
