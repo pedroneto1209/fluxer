@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {AttentionBlockMenuItem} from '@app/features/attention/AttentionBlockMenuItem';
 import Authentication from '@app/features/auth/state/Authentication';
 import Channels from '@app/features/channel/state/Channels';
 import DeveloperMode from '@app/features/devtools/state/DeveloperMode';
@@ -254,6 +255,7 @@ export const GuildMemberContextMenu: React.FC<GuildMemberContextMenuProps> = obs
 								data-flx="ui.action-menu.guild-member-context-menu.report-message-menu-item"
 							/>
 						)}
+						<AttentionBlockMenuItem user={user} />
 						{relationshipType === RelationshipTypes.BLOCKED ? (
 							<UnblockUserMenuItem
 								user={user}

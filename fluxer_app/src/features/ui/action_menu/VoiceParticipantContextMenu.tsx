@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {AttentionBlockMenuItem} from '@app/features/attention/AttentionBlockMenuItem';
 import Channels from '@app/features/channel/state/Channels';
 import Guilds from '@app/features/guild/state/Guilds';
 import Permission from '@app/features/permissions/state/Permission';
@@ -187,6 +188,7 @@ export const VoiceParticipantContextMenu: React.FC<VoiceParticipantContextMenuPr
 						data-flx="ui.action-menu.voice-participant-context-menu.invite-to-community-menu-item"
 					/>
 				)}
+				<AttentionBlockMenuItem user={user} />
 				{privateCallChannel?.isDM() && (
 					<MuteDMMenuItem
 						channel={privateCallChannel}

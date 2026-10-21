@@ -157,21 +157,54 @@ export interface AttentionWink {
 	emoji: string | null;
 	durationMs: number;
 	contentType: string;
+	// Uploaded by someone through the app (built-in winks are curated on the server).
+	custom: boolean;
+	uploaderId: string | null;
 }
 
-// "Chamar atenção" animations, curated on the server.
-export async function listWinks(): Promise<Array<AttentionWink>> {
-	const response = await request('/api/winks');
-	const body = (await response.json()) as {
-		winks: Array<{id: string; name: string; emoji: string | null; duration_ms: number; content_type: string}>;
-	};
-	return body.winks.map((wink) => ({
+interface ApiWink {
+	id: string;
+	name: string;
+	emoji: string | null;
+	duration_ms: number;
+	content_type: string;
+	custom?: boolean;
+	uploader_id?: string | null;
+}
+
+function toWink(wink: ApiWink): AttentionWink {
+	return {
 		id: wink.id,
 		name: wink.name,
 		emoji: wink.emoji,
 		durationMs: wink.duration_ms,
 		contentType: wink.content_type,
-	}));
+		custom: wink.custom === true,
+		uploaderId: wink.uploader_id ?? null,
+	};
+}
+
+// "Chamar atenção" animations: the built-in ones plus everyone's uploads.
+export async function listWinks(): Promise<Array<AttentionWink>> {
+	const response = await request('/api/winks');
+	const body = (await response.json()) as {winks: Array<ApiWink>};
+	return body.winks.map(toWink);
+}
+
+// The file goes up as-is; the service converts it to a short MP4.
+export async function uploadWink(wink: {name: string; emoji: string | null; file: Blob}): Promise<AttentionWink> {
+	const query = new URLSearchParams({name: wink.name});
+	if (wink.emoji) query.set('emoji', wink.emoji);
+	const response = await request(`/api/winks?${query.toString()}`, {
+		method: 'POST',
+		headers: {'Content-Type': wink.file.type || 'application/octet-stream'},
+		body: wink.file,
+	});
+	return toWink((await response.json()) as ApiWink);
+}
+
+export async function deleteWink(winkId: string): Promise<void> {
+	await request(`/api/winks/${encodeURIComponent(winkId)}`, {method: 'DELETE'});
 }
 
 export async function fetchWinkVideo(winkId: string): Promise<Blob> {

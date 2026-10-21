@@ -72,3 +72,98 @@
 	color: var(--status-danger);
 	font-size: 0.875rem;
 }
+
+.tile {
+	position: relative;
+	display: flex;
+}
+
+.tile > .option {
+	flex: 1;
+	min-width: 0;
+}
+
+.optionWithDelete {
+	padding-right: 2.25rem;
+}
+
+.deleteButton {
+	position: absolute;
+	top: 50%;
+	right: var(--spacing-2);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.5rem;
+	height: 1.5rem;
+	padding: 0 var(--spacing-1);
+	border: none;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--text-tertiary);
+	font: inherit;
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+	transform: translateY(-50%);
+}
+
+.deleteButton:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--status-danger);
+}
+
+.deleteButtonConfirming {
+	background-color: var(--status-danger);
+	color: #fff;
+}
+
+.deleteButtonConfirming:hover {
+	background-color: var(--status-danger);
+	color: #fff;
+}
+
+.addOption {
+	justify-content: center;
+	border-style: dashed;
+	color: var(--text-secondary);
+}
+
+.addForm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-3);
+	margin-top: var(--spacing-3);
+	padding: var(--spacing-3);
+	border: 0.0625rem solid var(--background-modifier-accent);
+	border-radius: var(--radius-lg);
+}
+
+.addRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--spacing-2);
+}
+
+.addName {
+	flex: 1;
+	min-width: 10rem;
+}
+
+.addEmoji {
+	width: 6rem;
+}
+
+.hiddenInput {
+	display: none;
+}
+
+.fileName {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

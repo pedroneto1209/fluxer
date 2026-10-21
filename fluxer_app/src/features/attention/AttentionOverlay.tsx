@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import styles from '@app/features/attention/AttentionOverlay.module.css';
-import AttentionStore, {type ActiveAttention} from '@app/features/attention/AttentionStore';
+import AttentionStore, {type ActiveAttention, type SentAttention} from '@app/features/attention/AttentionStore';
 import {Logger} from '@app/features/platform/utils/AppLogger';
-import {fetchWinkVideo} from '@app/features/voice/soundboard/SoundboardApi';
-import {BellRingingIcon} from '@phosphor-icons/react';
+import {type AttentionWink, fetchWinkVideo} from '@app/features/voice/soundboard/SoundboardApi';
+import {BellRingingIcon, XIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {useCallback, useEffect, useRef, useState} from 'react';
@@ -14,21 +14,16 @@ const logger = new Logger('AttentionOverlay');
 // A nudge without an animation stays up this long; a clip closes when it ends.
 const NUDGE_ONLY_MS = 3500;
 const MAX_CLIP_MS = 30_000;
+// The sender's corner card for anything that isn't a playing clip.
+const SENT_NOTICE_MS = 4500;
 
-const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
-	const videoRef = useRef<HTMLVideoElement | null>(null);
+// Fetch a wink's clip as an object URL; calls onFailed if it can't be loaded.
+function useWinkVideoUrl(wink: AttentionWink | null, onFailed: () => void): string | null {
 	const [videoUrl, setVideoUrl] = useState<string | null>(null);
-	const close = useCallback(() => AttentionStore.dismiss(attention.key), [attention.key]);
-
 	useEffect(() => {
-		const wink = attention.wink;
-		if (!wink) {
-			const timer = setTimeout(close, NUDGE_ONLY_MS);
-			return () => clearTimeout(timer);
-		}
+		if (!wink) return;
 		let url: string | null = null;
 		let canceled = false;
-		const safety = setTimeout(close, MAX_CLIP_MS);
 		fetchWinkVideo(wink.id)
 			.then((blob) => {
 				if (canceled) return;
@@ -37,13 +32,25 @@ const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
 			})
 			.catch((error: unknown) => {
 				logger.warn('Could not load the attention animation', {error});
-				setTimeout(close, NUDGE_ONLY_MS);
+				if (!canceled) onFailed();
 			});
 		return () => {
 			canceled = true;
-			clearTimeout(safety);
 			if (url) URL.revokeObjectURL(url);
 		};
+	}, [wink, onFailed]);
+	return videoUrl;
+}
+
+const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
+	const videoRef = useRef<HTMLVideoElement | null>(null);
+	const close = useCallback(() => AttentionStore.dismiss(attention.key), [attention.key]);
+	const closeLater = useCallback(() => setTimeout(close, NUDGE_ONLY_MS), [close]);
+	const videoUrl = useWinkVideoUrl(attention.wink, closeLater);
+
+	useEffect(() => {
+		const timer = setTimeout(close, attention.wink ? MAX_CLIP_MS : NUDGE_ONLY_MS);
+		return () => clearTimeout(timer);
 	}, [attention.wink, close]);
 
 	useEffect(() => {
@@ -99,8 +106,84 @@ const AttentionCard = ({attention}: {attention: ActiveAttention}) => {
 	);
 };
 
+function describeSent(sent: SentAttention): string {
+	const name = sent.recipientName;
+	switch (sent.status) {
+		case 'shown':
+			return sent.wink ? `${name} está vendo:` : `${name} recebeu seu chamado!`;
+		case 'blocked':
+			return `${name} bloqueou seus winks.`;
+		case 'busy':
+			return `${name} já está vendo outro wink. Tente de novo em instantes.`;
+		case 'no-answer':
+			return `${name} não confirmou. Talvez esteja com uma versão antiga do Fluxer.`;
+	}
+}
+
+// Bottom-right confirmation for the sender: a small, muted copy of what the other
+// person is seeing, or why they aren't.
+const SentAttentionCard = ({sent}: {sent: SentAttention}) => {
+	const close = useCallback(() => AttentionStore.dismissSent(sent.key), [sent.key]);
+	const playing = sent.status === 'shown' && sent.wink != null;
+	const videoUrl = useWinkVideoUrl(playing ? sent.wink : null, close);
+
+	useEffect(() => {
+		const timer = setTimeout(close, playing ? MAX_CLIP_MS : SENT_NOTICE_MS);
+		return () => clearTimeout(timer);
+	}, [playing, close]);
+
+	return (
+		<div
+			className={clsx(styles.sent, sent.status !== 'shown' && styles.sentProblem)}
+			role="status"
+			data-flx="attention.sent"
+		>
+			<div className={styles.sentHeader} data-flx="attention.sent.header">
+				<BellRingingIcon weight="fill" className={styles.bell} />
+				<span className={styles.sentText} data-flx="attention.sent.text">
+					{describeSent(sent)}
+					{playing && sent.wink && (
+						<strong className={styles.sentWinkName}>
+							{' '}
+							{sent.wink.emoji ?? '🎬'} {sent.wink.name}
+						</strong>
+					)}
+				</span>
+				<button
+					type="button"
+					className={styles.sentClose}
+					onClick={close}
+					aria-label="Fechar"
+					data-flx="attention.sent.close"
+				>
+					<XIcon size={14} weight="bold" />
+				</button>
+			</div>
+			{playing && (
+				<div className={styles.sentVideoFrame} data-flx="attention.sent.video-frame">
+					{videoUrl && (
+						<video
+							className={styles.sentVideo}
+							src={videoUrl}
+							autoPlay
+							muted
+							playsInline
+							onEnded={() => setTimeout(close, 600)}
+							data-flx="attention.sent.video"
+						/>
+					)}
+				</div>
+			)}
+		</div>
+	);
+};
+
 export const AttentionOverlay = observer(() => {
-	const attention = AttentionStore.active;
-	if (!attention) return null;
-	return <AttentionCard key={attention.key} attention={attention} />;
+	const {active, sent} = AttentionStore;
+	return (
+		<>
+			{sent && <SentAttentionCard key={sent.key} sent={sent} />}
+			{active && <AttentionCard key={active.key} attention={active} />}
+		</>
+	);
 });

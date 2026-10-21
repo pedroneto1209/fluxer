@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {showGenericErrorModal} from '@app/features/app/components/alerts/GenericErrorModalCommands';
-
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
+import {AttentionBlockMenuItem} from '@app/features/attention/AttentionBlockMenuItem';
 import Authentication from '@app/features/auth/state/Authentication';
 import * as ChannelCommands from '@app/features/channel/commands/ChannelCommands';
 import * as PrivateChannelCommands from '@app/features/channel/commands/PrivateChannelCommands';
@@ -380,6 +380,7 @@ export const GroupDMMemberContextMenu: React.FC<GroupDMMemberContextMenuProps> =
 						onClose={onClose}
 						data-flx="ui.action-menu.group-dm-context-menu.group-dm-member-context-menu.relationship-action-menu-item"
 					/>
+					<AttentionBlockMenuItem user={user} />
 					{relationshipType === RelationshipTypes.BLOCKED ? (
 						<UnblockUserMenuItem
 							user={user}
