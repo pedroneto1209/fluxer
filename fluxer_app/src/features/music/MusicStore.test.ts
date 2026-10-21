@@ -78,6 +78,23 @@ describe('MusicStore', () => {
 		expect(MusicStore.panelOpen).toBe(false);
 	});
 
+	it('runs one command at a time across panel remounts and keeps its error', async () => {
+		let resolve!: (state: MusicSessionState) => void;
+		const skip = vi.fn(() => new Promise<MusicSessionState>((res) => (resolve = res)));
+		const first = MusicStore.runCommand(skip);
+		expect(MusicStore.commandPending).toBe(true);
+		await expect(MusicStore.runCommand(skip)).resolves.toBe(false);
+		expect(skip).toHaveBeenCalledTimes(1);
+		resolve(makeState({channelId: 'run1', revision: 4}));
+		await expect(first).resolves.toBe(true);
+		expect(MusicStore.commandPending).toBe(false);
+		expect(MusicStore.sessionByChannel.get('run1')?.revision).toBe(4);
+		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
+		expect(MusicStore.commandError).toBe('A fila está cheia.');
+		await MusicStore.runCommand(async () => null);
+		expect(MusicStore.commandError).toBeNull();
+	});
+
 	it('currentPositionMs is 0 without a session', () => {
 		expect(MusicStore.currentPositionMs('nope')).toBe(0);
 	});

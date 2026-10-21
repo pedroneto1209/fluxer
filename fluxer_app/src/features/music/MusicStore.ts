@@ -7,6 +7,7 @@ import {
 	type MusicGuildSession,
 	type MusicSessionState,
 } from '@app/features/music/MusicApi';
+import {createMusicCommandRunner} from '@app/features/music/MusicPanelStateMachine';
 import {makeAutoObservable, runInAction} from 'mobx';
 
 export type MusicAvailability = 'unknown' | 'checking' | 'available' | 'unavailable';
@@ -40,10 +41,30 @@ class MusicStore {
 	panelOpen = false;
 	/** Text of the panel's search field, kept here so it survives the panel remounting. */
 	searchText = '';
+	/** A panel command (skip, pause, queue edits, stop) is in flight. */
+	commandPending = false;
+	/** Error of the last panel command, ready to show. */
+	commandError: string | null = null;
 	private lastCheckAt = 0;
+	// Held here, not in the panel, so a panel remount mid-command still blocks a second one.
+	private readonly commandRunner = createMusicCommandRunner<MusicSessionState>({
+		apply: (state) => this.applyState(state),
+		onError: (error) =>
+			runInAction(() => {
+				this.commandError = error == null ? null : this.describeMusicError(error);
+			}),
+		onPendingChange: (pending) =>
+			runInAction(() => {
+				this.commandPending = pending;
+			}),
+	});
 
 	constructor() {
-		makeAutoObservable<this, 'lastCheckAt'>(this, {lastCheckAt: false}, {autoBind: true});
+		makeAutoObservable<this, 'lastCheckAt' | 'commandRunner'>(
+			this,
+			{lastCheckAt: false, commandRunner: false, runCommand: false},
+			{autoBind: true},
+		);
 	}
 
 	async checkAvailability(force = false): Promise<void> {
@@ -75,6 +96,11 @@ class MusicStore {
 		const duration = state.nowPlaying?.durationMs ?? 0;
 		// duration 0 = unknown: extrapolate without clamping.
 		return duration > 0 ? Math.min(position, duration) : position;
+	}
+
+	/** Runs one command at a time and applies the state it returns; false if ignored or failed. */
+	runCommand(command: () => Promise<MusicSessionState | null>): Promise<boolean> {
+		return this.commandRunner.run(command);
 	}
 
 	togglePanel(): void {

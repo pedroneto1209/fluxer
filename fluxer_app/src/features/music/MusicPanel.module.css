@@ -411,7 +411,9 @@
 	padding-right: var(--music-panel-width);
 }
 
-:has(> .callSideDock) > [data-voice-call-channel-header='true'][data-voice-call-channel-header] {
+/* Only while the header is an absolute overlay; in avatar mode upstream makes it relative. */
+:has(> .callSideDock):not(:has([data-voice-call-avatar-mode='true']))
+> [data-voice-call-channel-header='true'][data-voice-call-channel-header] {
 	right: var(--music-panel-width);
 }
 

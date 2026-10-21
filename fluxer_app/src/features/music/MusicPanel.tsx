@@ -23,7 +23,6 @@ import {
 } from '@app/features/music/MusicApi';
 import styles from '@app/features/music/MusicPanel.module.css';
 import {
-	createMusicCommandRunner,
 	createMusicSearchInput,
 	describeMusicProgress,
 	formatMusicTime,
@@ -624,31 +623,9 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 	const guildId = channel.guildId ?? null;
 	const channelId = channel.id;
 	const session = MusicStore.sessionByChannel.get(channelId) ?? null;
-	const [error, setError] = useState<string | null>(null);
-	const [pending, setPending] = useState(false);
-	const mounted = useRef(false);
-	useEffect(() => {
-		mounted.current = true;
-		return () => {
-			mounted.current = false;
-		};
-	}, []);
-
-	// One command at a time: controls are disabled while it runs, and a second click is ignored.
-	const runner = useMemo(
-		() =>
-			createMusicCommandRunner<MusicSessionState>({
-				apply: MusicStore.applyState,
-				onError: (commandError) => {
-					if (mounted.current) setError(commandError == null ? null : MusicStore.describeMusicError(commandError));
-				},
-				onPendingChange: (value) => {
-					if (mounted.current) setPending(value);
-				},
-			}),
-		[],
-	);
-	const run = useCallback<RunCommand>((command) => runner.run(command), [runner]);
+	const error = MusicStore.commandError;
+	const pending = MusicStore.commandPending;
+	const run = MusicStore.runCommand;
 
 	const handleStop = useCallback(() => {
 		if (!guildId) return;
