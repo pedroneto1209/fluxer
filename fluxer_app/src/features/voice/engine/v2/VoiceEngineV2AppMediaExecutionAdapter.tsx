@@ -51,6 +51,7 @@ import {
 	getLocalCameraPublications,
 	getLocalMicrophonePublications,
 	getPrimaryLocalMicrophonePublication,
+	isSoundboardPublication,
 } from '@app/features/voice/engine/VoiceTrackPublicationUtils';
 import {
 	asVoiceTrackSource,
@@ -1634,7 +1635,7 @@ class VoiceEngineV2AppMediaExecutionAdapter extends Store {
 	private setAudioPublicationsMuted(room: Room, micMuted: boolean, reason: string): void {
 		const muteStreamAudio = VoiceSettings.getMuteStreamAudio();
 		for (const publication of room.localParticipant.audioTrackPublications.values()) {
-			if (!publication) continue;
+			if (!publication || isSoundboardPublication(publication)) continue;
 			let target: boolean;
 			if (publication.source === Track.Source.Microphone) {
 				target = micMuted;

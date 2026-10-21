@@ -32,13 +32,22 @@ function isMicrophoneSourcePublication(publication: Pick<LocalTrackPublication, 
 	return asVoiceTrackSource(publication?.source) === VoiceTrackSourceValue.Microphone;
 }
 
+// The soundboard publishes its clips as a second microphone-source track (the only
+// audio source a voice grant allows). It is not the user's microphone: mute,
+// push-to-talk and microphone teardown must leave it alone.
+export const SOUNDBOARD_TRACK_NAME = 'fluxer-soundboard';
+
+export function isSoundboardPublication(publication: Pick<LocalTrackPublication, 'trackName'> | null | undefined): boolean {
+	return publication?.trackName === SOUNDBOARD_TRACK_NAME;
+}
+
 function isControllableMicrophonePublication(
-	publication: Pick<LocalTrackPublication, 'source'> | null | undefined,
+	publication: Pick<LocalTrackPublication, 'source' | 'trackName'> | null | undefined,
 ): boolean {
 	if (!publication) {
 		return false;
 	}
-	return isMicrophoneSourcePublication(publication);
+	return isMicrophoneSourcePublication(publication) && !isSoundboardPublication(publication);
 }
 
 export function getLocalMicrophonePublications(

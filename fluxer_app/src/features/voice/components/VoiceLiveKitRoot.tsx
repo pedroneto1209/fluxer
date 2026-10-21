@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
 import type {Room} from 'livekit-client';
@@ -27,6 +28,17 @@ function loadLiveKitComponents(): Promise<LiveKitComponentsModule> {
 
 export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React.ReactElement {
 	const [components, setComponents] = useState<LiveKitComponentsModule | null>(null);
+
+	// The voice_toggle_soundboard keybind (Ctrl+Shift+B by default) dispatches this.
+	useEffect(
+		() =>
+			ComponentBus.subscribe('SOUNDBOARD_TOGGLE', () => {
+				void import('@app/features/voice/soundboard/SoundboardModal').then(({toggleSoundboard}) =>
+					toggleSoundboard(),
+				);
+			}),
+		[],
+	);
 
 	useEffect(() => {
 		if (!room || components) {
