@@ -4,7 +4,7 @@
 // title, artist and source, no controls. Clicking it opens the music panel.
 
 import {isMusicUsableInCall} from '@app/features/music/MusicCall';
-import {appendMusicGridEntry} from '@app/features/music/MusicGridEntry';
+import {withMusicGridEntry} from '@app/features/music/MusicGridEntry';
 import {musicIdentityForChannel} from '@app/features/music/MusicIdentity';
 import MusicStore from '@app/features/music/MusicStore';
 import styles from '@app/features/music/MusicTile.module.css';
@@ -25,7 +25,7 @@ export function useMusicGridEntries(entries: Array<VoiceGridEntry>, channelId: s
 	const hasSession = MusicStore.sessionByChannel.has(channelId);
 	const room = MediaEngine.room;
 	const participant = hasSession ? room?.remoteParticipants.get(musicIdentityForChannel(channelId)) : undefined;
-	return useMemo(() => appendMusicGridEntry(entries, participant), [entries, participant]);
+	return useMemo(() => withMusicGridEntry(entries, participant), [entries, participant]);
 }
 
 const SOURCE_LABEL = {spotify: 'Spotify', youtube: 'YouTube'} as const;

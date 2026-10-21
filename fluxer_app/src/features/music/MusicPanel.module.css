@@ -399,24 +399,33 @@
 	border-top: 0.0625rem solid var(--background-modifier-hover);
 }
 
-/* MusicCallSplit: the call and the panel side by side when the call fills the view. */
-.callSplit {
+/*
+ * MusicCallSidePanel: docked at the right of the call container (the voice header
+ * wrapper when the call is expanded, or the fullscreen shell). The container makes
+ * room for it, and the channel header overlay stops at the panel's edge.
+ */
+:has(> .callSideDock) {
+	--music-panel-width: 20rem;
+	position: relative;
+	box-sizing: border-box;
+	padding-right: var(--music-panel-width);
+}
+
+:has(> .callSideDock) > [data-voice-call-channel-header='true'][data-voice-call-channel-header] {
+	right: var(--music-panel-width);
+}
+
+.callSideDock {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 21;
 	display: flex;
-	flex: 1 1 auto;
+	width: var(--music-panel-width, 20rem);
+}
+
+.callSideDock .panel {
 	width: 100%;
-	height: 100%;
-	min-width: 0;
-	min-height: 0;
-}
-
-.callSplitCall {
-	display: flex;
-	flex: 1 1 auto;
-	flex-direction: column;
-	min-width: 0;
-	min-height: 0;
-}
-
-.passthrough {
-	display: contents;
+	max-width: none;
 }

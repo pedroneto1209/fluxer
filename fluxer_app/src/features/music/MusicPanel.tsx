@@ -21,9 +21,9 @@ import {
 	skip,
 	stopSession,
 } from '@app/features/music/MusicApi';
-import {runMusicCommand} from '@app/features/music/MusicCall';
 import styles from '@app/features/music/MusicPanel.module.css';
 import {
+	createMusicCommandRunner,
 	createMusicSearchInput,
 	describeMusicProgress,
 	formatMusicTime,
@@ -152,7 +152,15 @@ const AddedBy = observer(function AddedBy({userId}: {userId: string}) {
 	);
 });
 
-const NowPlaying = observer(function NowPlaying({session, run}: {session: MusicSessionState; run: RunCommand}) {
+const NowPlaying = observer(function NowPlaying({
+	session,
+	run,
+	pending,
+}: {
+	session: MusicSessionState;
+	run: RunCommand;
+	pending: boolean;
+}) {
 	const {guildId, channelId, nowPlaying, paused} = session;
 	const [now, setNow] = useState(() => Date.now());
 	const ticking = nowPlaying != null && !paused;
@@ -215,6 +223,7 @@ const NowPlaying = observer(function NowPlaying({session, run}: {session: MusicS
 			<div className={styles.controls} data-flx="music.music-panel.now-playing.controls">
 				<IconButton
 					label="Voltar"
+					disabled={pending}
 					icon={<SkipBackIcon weight="fill" data-flx="music.music-panel.button.previous.icon" />}
 					onClick={() => void run(() => previous(guildId, channelId))}
 					data-flx="music.music-panel.button.previous"
@@ -222,7 +231,7 @@ const NowPlaying = observer(function NowPlaying({session, run}: {session: MusicS
 				<IconButton
 					label={paused ? 'Tocar' : 'Pausar'}
 					primary
-					disabled={!nowPlaying}
+					disabled={pending || !nowPlaying}
 					icon={
 						paused ? (
 							<PlayIcon weight="fill" data-flx="music.music-panel.button.play-pause.icon-play" />
@@ -235,7 +244,7 @@ const NowPlaying = observer(function NowPlaying({session, run}: {session: MusicS
 				/>
 				<IconButton
 					label="Pular"
-					disabled={!nowPlaying && session.queue.length === 0}
+					disabled={pending || (!nowPlaying && session.queue.length === 0)}
 					icon={<SkipForwardIcon weight="fill" data-flx="music.music-panel.button.skip.icon" />}
 					onClick={() => void run(() => skip(guildId, channelId))}
 					data-flx="music.music-panel.button.skip"
@@ -342,20 +351,22 @@ function ResultSection({
 	);
 }
 
-function MusicSearch({
+const MusicSearch = observer(function MusicSearch({
 	guildId,
 	channelId,
 	run,
+	pending,
 	hasSession,
 }: {
 	guildId: string;
 	channelId: string;
 	run: RunCommand;
+	pending: boolean;
 	hasSession: boolean;
 }) {
-	const [text, setText] = useState('');
+	const text = MusicStore.searchText;
+	const setText = MusicStore.setSearchText;
 	const [status, setStatus] = useState<SearchStatus>({kind: 'idle'});
-	const [adding, setAdding] = useState(false);
 	const requestSeq = useRef(0);
 
 	const search = useCallback(
@@ -384,14 +395,13 @@ function MusicSearch({
 		[clear],
 	);
 	useEffect(() => () => input.dispose(), [input]);
+	// The panel remounts when the call is expanded or collapsed: redo the kept search.
+	useEffect(() => {
+		input.submit(MusicStore.searchText);
+	}, [input]);
 
 	const add = useCallback(
-		async (payload: Parameters<typeof addToQueue>[2]) => {
-			setAdding(true);
-			const ok = await run(() => addToQueue(guildId, channelId, payload));
-			setAdding(false);
-			return ok;
-		},
+		(payload: Parameters<typeof addToQueue>[2]) => run(() => addToQueue(guildId, channelId, payload)),
 		[guildId, channelId, run],
 	);
 
@@ -399,7 +409,7 @@ function MusicSearch({
 		(event: React.KeyboardEvent<HTMLInputElement>) => {
 			if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
 			event.preventDefault();
-			if (adding || input.submit(text) !== 'link') return;
+			if (pending || input.submit(text) !== 'link') return;
 			void add({input: text.trim()}).then((ok) => {
 				if (ok) {
 					setText('');
@@ -407,7 +417,7 @@ function MusicSearch({
 				}
 			});
 		},
-		[add, adding, clear, input, text],
+		[add, pending, clear, input, text, setText],
 	);
 
 	const handleAddTrack = useCallback(
@@ -450,7 +460,7 @@ function MusicSearch({
 						title="YouTube"
 						tracks={status.result.youtube}
 						onAdd={handleAddTrack}
-						adding={adding}
+						adding={pending}
 						data-flx="music.music-panel.search.results.youtube"
 					/>
 					{status.result.spotify && (
@@ -458,7 +468,7 @@ function MusicSearch({
 							title="Spotify"
 							tracks={status.result.spotify}
 							onAdd={handleAddTrack}
-							adding={adding}
+							adding={pending}
 							data-flx="music.music-panel.search.results.spotify"
 						/>
 					)}
@@ -466,7 +476,7 @@ function MusicSearch({
 			)}
 		</section>
 	);
-}
+});
 
 interface QueueDragItem {
 	id: string;
@@ -478,11 +488,13 @@ function QueueRow({
 	index,
 	session,
 	run,
+	pending,
 }: {
 	item: MusicQueueItem;
 	index: number;
 	session: MusicSessionState;
 	run: RunCommand;
+	pending: boolean;
 }) {
 	const rowRef = useRef<HTMLLIElement | null>(null);
 	const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
@@ -555,6 +567,9 @@ function QueueRow({
 			<div
 				ref={setHandleNode}
 				className={styles.dragHandle}
+				role="button"
+				tabIndex={0}
+				aria-label="Arraste para reordenar"
 				title="Arraste para reordenar"
 				data-flx="music.music-panel.queue.item.drag-handle"
 			>
@@ -575,6 +590,7 @@ function QueueRow({
 			</div>
 			<IconButton
 				label="Remover da fila"
+				disabled={pending}
 				icon={<XIcon weight="bold" data-flx="music.music-panel.button.remove.icon" />}
 				onClick={() => void run(() => removeFromQueue(guildId, channelId, item.id))}
 				data-flx="music.music-panel.button.remove"
@@ -583,7 +599,7 @@ function QueueRow({
 	);
 }
 
-function MusicQueue({session, run}: {session: MusicSessionState; run: RunCommand}) {
+function MusicQueue({session, run, pending}: {session: MusicSessionState; run: RunCommand; pending: boolean}) {
 	return (
 		<section className={styles.section} aria-label="Fila" data-flx="music.music-panel.queue">
 			<h3 className={styles.sectionTitle} data-flx="music.music-panel.queue.title">
@@ -596,7 +612,7 @@ function MusicQueue({session, run}: {session: MusicSessionState; run: RunCommand
 			) : (
 				<ul className={styles.list} data-flx="music.music-panel.queue.list">
 					{session.queue.map((item, index) => (
-						<QueueRow key={item.id} item={item} index={index} session={session} run={run} />
+						<QueueRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
 					))}
 				</ul>
 			)}
@@ -609,24 +625,30 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 	const channelId = channel.id;
 	const session = MusicStore.sessionByChannel.get(channelId) ?? null;
 	const [error, setError] = useState<string | null>(null);
-	const mounted = useRef(true);
-	useEffect(
-		() => () => {
+	const [pending, setPending] = useState(false);
+	const mounted = useRef(false);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
 			mounted.current = false;
-		},
+		};
+	}, []);
+
+	// One command at a time: controls are disabled while it runs, and a second click is ignored.
+	const runner = useMemo(
+		() =>
+			createMusicCommandRunner<MusicSessionState>({
+				apply: MusicStore.applyState,
+				onError: (commandError) => {
+					if (mounted.current) setError(commandError == null ? null : MusicStore.describeMusicError(commandError));
+				},
+				onPendingChange: (value) => {
+					if (mounted.current) setPending(value);
+				},
+			}),
 		[],
 	);
-
-	const run = useCallback<RunCommand>(async (command) => {
-		setError(null);
-		try {
-			await runMusicCommand(command);
-			return true;
-		} catch (commandError) {
-			if (mounted.current) setError(MusicStore.describeMusicError(commandError));
-			return false;
-		}
-	}, []);
+	const run = useCallback<RunCommand>((command) => runner.run(command), [runner]);
 
 	const handleStop = useCallback(() => {
 		if (!guildId) return;
@@ -666,9 +688,17 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 			</header>
 			<Scroller className={styles.body} fade data-flx="music.music-panel.scroller">
 				<div className={styles.bodyContent} data-flx="music.music-panel.body">
-					{session && <NowPlaying session={session} run={run} />}
+					{session && <NowPlaying session={session} run={run} pending={pending} />}
 					{session && <MyVolume />}
-					{guildId && <MusicSearch guildId={guildId} channelId={channelId} run={run} hasSession={session != null} />}
+					{guildId && (
+						<MusicSearch
+							guildId={guildId}
+							channelId={channelId}
+							run={run}
+							pending={pending}
+							hasSession={session != null}
+						/>
+					)}
 					{error && (
 						<p className={styles.error} role="alert" data-flx="music.music-panel.error">
 							{error}
@@ -679,12 +709,19 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 							{session.notice}
 						</p>
 					)}
-					{session && <MusicQueue session={session} run={run} />}
+					{session && <MusicQueue session={session} run={run} pending={pending} />}
 				</div>
 			</Scroller>
 			{session && (
 				<footer className={styles.footer} data-flx="music.music-panel.footer">
-					<Button variant="danger" small fitContainer onClick={handleStop} data-flx="music.music-panel.button.stop">
+					<Button
+						variant="danger"
+						small
+						fitContainer
+						disabled={pending}
+						onClick={handleStop}
+						data-flx="music.music-panel.button.stop"
+					>
 						Encerrar música
 					</Button>
 				</footer>

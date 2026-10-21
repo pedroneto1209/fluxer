@@ -3,6 +3,7 @@
 import {
 	canUseMusicInCall,
 	classifyInput,
+	createMusicCommandRunner,
 	createMusicSearchInput,
 	describeMusicProgress,
 	formatMusicTime,
@@ -160,5 +161,52 @@ describe('canUseMusicInCall', () => {
 		expect(canUseMusicInCall({...base, connected: {...base.connected, guildId: null}})).toBe(false);
 		expect(canUseMusicInCall({...base, mobileLayout: true})).toBe(false);
 		expect(canUseMusicInCall({...base, channelId: '2'})).toBe(false);
+	});
+});
+
+describe('createMusicCommandRunner', () => {
+	function deferred<T>() {
+		let resolve!: (value: T) => void;
+		let reject!: (error: unknown) => void;
+		const promise = new Promise<T>((res, rej) => {
+			resolve = res;
+			reject = rej;
+		});
+		return {promise, resolve, reject};
+	}
+
+	it('ignores a second command while one is in flight (double-click on skip)', async () => {
+		const apply = vi.fn();
+		const pendingChanges: Array<boolean> = [];
+		const runner = createMusicCommandRunner<{revision: number}>({
+			apply,
+			onError: vi.fn(),
+			onPendingChange: (pending) => pendingChanges.push(pending),
+		});
+		const request = deferred<{revision: number}>();
+		const skip = vi.fn(() => request.promise);
+		const first = runner.run(skip);
+		const second = runner.run(skip);
+		expect(runner.pending).toBe(true);
+		await expect(second).resolves.toBe(false);
+		expect(skip).toHaveBeenCalledTimes(1);
+		request.resolve({revision: 2});
+		await expect(first).resolves.toBe(true);
+		expect(apply).toHaveBeenCalledWith({revision: 2});
+		expect(runner.pending).toBe(false);
+		expect(pendingChanges).toEqual([true, false]);
+		await runner.run(skip);
+		expect(skip).toHaveBeenCalledTimes(2);
+	});
+
+	it('reports errors, clears the previous error and releases the pending state', async () => {
+		const onError = vi.fn();
+		const runner = createMusicCommandRunner<{revision: number}>({apply: vi.fn(), onError});
+		const failure = new Error('nope');
+		await expect(runner.run(() => Promise.reject(failure))).resolves.toBe(false);
+		expect(onError).toHaveBeenLastCalledWith(failure);
+		await expect(runner.run(async () => null)).resolves.toBe(true);
+		expect(onError).toHaveBeenLastCalledWith(null);
+		expect(runner.pending).toBe(false);
 	});
 });

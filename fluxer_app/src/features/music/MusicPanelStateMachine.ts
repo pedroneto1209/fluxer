@@ -131,3 +131,49 @@ export function canUseMusicInCall({availability, mobileLayout, connected, channe
 	if (!connected.guildId || connected.mesh) return false;
 	return channelId == null || connected.channelId === channelId;
 }
+
+export interface MusicCommandRunnerOptions<State> {
+	apply: (state: State) => void;
+	/** Called with null when a command starts, and with the error when it fails. */
+	onError: (error: unknown) => void;
+	onPendingChange?: (pending: boolean) => void;
+}
+
+export interface MusicCommandRunner<State> {
+	readonly pending: boolean;
+	/** False when the command failed or was ignored because another one is in flight. */
+	run(command: () => Promise<State | null>): Promise<boolean>;
+}
+
+// One music command at a time per panel, so a double-click on "Pular" skips once.
+export function createMusicCommandRunner<State>({
+	apply,
+	onError,
+	onPendingChange,
+}: MusicCommandRunnerOptions<State>): MusicCommandRunner<State> {
+	let pending = false;
+	const setPending = (value: boolean): void => {
+		pending = value;
+		onPendingChange?.(value);
+	};
+	return {
+		get pending() {
+			return pending;
+		},
+		async run(command) {
+			if (pending) return false;
+			setPending(true);
+			onError(null);
+			try {
+				const state = await command();
+				if (state) apply(state);
+				return true;
+			} catch (error) {
+				onError(error);
+				return false;
+			} finally {
+				setPending(false);
+			}
+		},
+	};
+}

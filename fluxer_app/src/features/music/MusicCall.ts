@@ -3,7 +3,7 @@
 // Where music can be used: reads the current call from the media engine. Call from
 // observers so the UI follows joins, leaves and mesh-to-SFU conversions.
 
-import type {MusicSessionState} from '@app/features/music/MusicApi';
+import {installMusicPanelAutoClose} from '@app/features/music/MusicPanelAutoClose';
 import {canUseMusicInCall} from '@app/features/music/MusicPanelStateMachine';
 import MusicStore from '@app/features/music/MusicStore';
 import MobileLayout from '@app/features/ui/state/MobileLayout';
@@ -29,8 +29,11 @@ export function isMusicPanelShown(channelId: string): boolean {
 	return MusicStore.panelOpen && isMusicUsableInCall(channelId);
 }
 
-/** Runs a music command and applies the session state it returns. Throws MusicApiError. */
-export async function runMusicCommand(command: () => Promise<MusicSessionState | null>): Promise<void> {
-	const state = await command();
-	if (state) MusicStore.applyState(state);
+let autoCloseInstalled = false;
+
+/** Closes the panel when the call ends or changes channel. Safe to call many times. */
+export function ensureMusicPanelAutoClose(): void {
+	if (autoCloseInstalled) return;
+	autoCloseInstalled = true;
+	installMusicPanelAutoClose(() => MediaEngine.channelId, MusicStore.closePanel);
 }

@@ -2,6 +2,7 @@
 
 // The call grid only renders `user_*` participants. The channel music participant gets
 // one extra grid entry (rendered as MusicTile) so the grid sizes its tiles for it too.
+// It goes first: the grid hides the last entries when they do not fit.
 
 import {isMusicIdentity} from '@app/features/music/MusicIdentity';
 import type {VoiceGridEntry} from '@app/features/voice/components/VoiceParticipantConsolidation';
@@ -10,7 +11,7 @@ import {type Participant, Track} from 'livekit-client';
 const MUSIC_GRID_KEY_PREFIX = 'music-tile:';
 const MUSIC_IDENTITY_PREFIX = 'music_';
 
-export function appendMusicGridEntry(
+export function withMusicGridEntry(
 	entries: Array<VoiceGridEntry>,
 	participant: Participant | null | undefined,
 ): Array<VoiceGridEntry> {
@@ -24,7 +25,7 @@ export function appendMusicGridEntry(
 		isDeviceGroupExpanded: false,
 		userId: null,
 	};
-	return [...entries, entry];
+	return [entry, ...entries];
 }
 
 /** The channel id of a music tile entry, or null for any other grid entry. */

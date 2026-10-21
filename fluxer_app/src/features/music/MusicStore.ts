@@ -38,6 +38,8 @@ class MusicStore {
 	sessionByChannel = new Map<string, MusicSessionState>();
 	guildSessions = new Map<string, Array<MusicGuildSession>>();
 	panelOpen = false;
+	/** Text of the panel's search field, kept here so it survives the panel remounting. */
+	searchText = '';
 	private lastCheckAt = 0;
 
 	constructor() {
@@ -85,6 +87,10 @@ class MusicStore {
 
 	closePanel(): void {
 		this.panelOpen = false;
+	}
+
+	setSearchText(text: string): void {
+		this.searchText = text;
 	}
 
 	async refreshGuildSessions(guildId: string): Promise<void> {

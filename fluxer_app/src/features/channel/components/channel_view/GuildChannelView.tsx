@@ -33,7 +33,7 @@ import Guilds from '@app/features/guild/state/Guilds';
 import GuildVerification from '@app/features/guild/state/GuildVerification';
 import {useMemberListVisible} from '@app/features/member/hooks/useMemberListVisible';
 import {isMusicPanelShown} from '@app/features/music/MusicCall';
-import {MusicCallSplit} from '@app/features/music/MusicCallSplit';
+import {MusicCallSidePanel} from '@app/features/music/MusicCallSidePanel';
 import {MusicPanel} from '@app/features/music/MusicPanel';
 import Permission from '@app/features/permissions/state/Permission';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
@@ -439,7 +439,6 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 	if (isVoiceChannel) {
 		const isVoiceTextSplitView = isPwaVoiceTextSplitLayout && !isVoiceTextCallExpanded;
 		const shouldRenderMemberList = isMemberListVisible && !isMobileLayout && !isSearchActive;
-		// When the call fills the view the side panel slot is hidden; MusicCallSplit shows the panel instead.
 		const shouldRenderMusicPanel = !isVoiceTextCallExpanded && isMusicPanelShown(channelId);
 		const compactVoiceCallHeaderSupplement = isConnectedToThisChannel ? (
 			<CompactVoiceCallStreamHeaderInfo
@@ -455,14 +454,17 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 					className={clsx(styles.voiceChannelContainer, styles.voiceChannelFullscreenShell)}
 					data-flx="channel.channel-view.guild-channel-view.voice-channel"
 				>
-					<MusicCallSplit channel={channel} enabled data-flx="channel.channel-view.guild-channel-view.music-call-split">
-						<VoiceCallView
-							channel={channel}
-							fullscreenRequestNonce={voiceCallFullscreenRequestNonce}
-							onCloseFullscreenView={handleCollapseVoiceTextCallFullscreen}
-							data-flx="channel.channel-view.guild-channel-view.voice-call-view"
-						/>
-					</MusicCallSplit>
+					<VoiceCallView
+						channel={channel}
+						fullscreenRequestNonce={voiceCallFullscreenRequestNonce}
+						onCloseFullscreenView={handleCollapseVoiceTextCallFullscreen}
+						data-flx="channel.channel-view.guild-channel-view.voice-call-view"
+					/>
+					<MusicCallSidePanel
+						channel={channel}
+						enabled
+						data-flx="channel.channel-view.guild-channel-view.music-call-side-panel"
+					/>
 				</div>
 			);
 		}
@@ -474,52 +476,51 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 				)}
 				voiceTextSplitView={isVoiceTextSplitView}
 				header={
-					<MusicCallSplit
-						channel={channel}
-						enabled={isVoiceTextCallExpanded}
-						data-flx="channel.channel-view.guild-channel-view.music-call-split--2"
+					<div
+						ref={voiceCallChromeRef}
+						className={clsx(
+							styles.voiceActiveHeaderWrapper,
+							isConnectedToThisChannel && styles.voiceActiveHeaderWrapperOverlay,
+							isVoiceTextCallExpanded && styles.voiceActiveHeaderWrapperExpanded,
+						)}
+						data-voice-call-header-pinned={isVoiceCallChromePinned ? 'true' : undefined}
+						data-voice-text-split-view={isVoiceTextSplitView ? 'true' : undefined}
+						data-flx="channel.channel-view.guild-channel-view.voice-active-header-wrapper"
 					>
-						<div
-							ref={voiceCallChromeRef}
-							className={clsx(
-								styles.voiceActiveHeaderWrapper,
-								isConnectedToThisChannel && styles.voiceActiveHeaderWrapperOverlay,
-								isVoiceTextCallExpanded && styles.voiceActiveHeaderWrapperExpanded,
-							)}
-							data-voice-call-header-pinned={isVoiceCallChromePinned ? 'true' : undefined}
-							data-voice-text-split-view={isVoiceTextSplitView ? 'true' : undefined}
-							data-flx="channel.channel-view.guild-channel-view.voice-active-header-wrapper"
-						>
-							<ChannelHeader
-								channel={channel}
-								showMembersToggle={true}
-								showPins={true}
-								onSearchSubmit={handleSearchSubmit}
-								onSearchClose={handleSearchClose}
-								isSearchResultsOpen={isSearchActive}
-								forceVoiceCallStyle={true}
-								memberListDefaultHiddenForChannel={memberListDefaultHiddenForChannel}
-								onBackClick={isMobileLayout && !isVoiceTextCallExpanded ? handleOpenVoiceCallFromTextChat : undefined}
-								voiceCallHeaderSupplement={compactVoiceCallHeaderSupplement}
-								onVoiceCallChromePinChange={setIsVoiceCallChromePinnedByHeader}
-								data-flx="channel.channel-view.guild-channel-view.channel-header--2"
-							/>
-							<ChannelCompactCallSurface
-								channel={channel}
-								isExpanded={isVoiceTextCallExpanded}
-								onToggleExpanded={handleToggleVoiceTextCallExpanded}
-								unreadCount={voiceTextUnreadCount}
-								mediaMode={isConnectedToThisChannel ? 'live' : 'placeholder'}
-								avatarFallback={!isConnectedToThisChannel ? voiceJoinEmptyState : undefined}
-								avatarFallbackFullBleed={!isConnectedToThisChannel}
-								audioOnly={!isConnectedToThisChannel}
-								hideControlBar={!isConnectedToThisChannel}
-								onFullscreenRequest={isConnectedToThisChannel ? handleOpenVoiceCallFullscreenView : undefined}
-								reserveHeaderChrome={isConnectedToThisChannel}
-								data-flx="channel.channel-view.guild-channel-view.channel-compact-call-surface--2"
-							/>
-						</div>
-					</MusicCallSplit>
+						<ChannelHeader
+							channel={channel}
+							showMembersToggle={true}
+							showPins={true}
+							onSearchSubmit={handleSearchSubmit}
+							onSearchClose={handleSearchClose}
+							isSearchResultsOpen={isSearchActive}
+							forceVoiceCallStyle={true}
+							memberListDefaultHiddenForChannel={memberListDefaultHiddenForChannel}
+							onBackClick={isMobileLayout && !isVoiceTextCallExpanded ? handleOpenVoiceCallFromTextChat : undefined}
+							voiceCallHeaderSupplement={compactVoiceCallHeaderSupplement}
+							onVoiceCallChromePinChange={setIsVoiceCallChromePinnedByHeader}
+							data-flx="channel.channel-view.guild-channel-view.channel-header--2"
+						/>
+						<ChannelCompactCallSurface
+							channel={channel}
+							isExpanded={isVoiceTextCallExpanded}
+							onToggleExpanded={handleToggleVoiceTextCallExpanded}
+							unreadCount={voiceTextUnreadCount}
+							mediaMode={isConnectedToThisChannel ? 'live' : 'placeholder'}
+							avatarFallback={!isConnectedToThisChannel ? voiceJoinEmptyState : undefined}
+							avatarFallbackFullBleed={!isConnectedToThisChannel}
+							audioOnly={!isConnectedToThisChannel}
+							hideControlBar={!isConnectedToThisChannel}
+							onFullscreenRequest={isConnectedToThisChannel ? handleOpenVoiceCallFullscreenView : undefined}
+							reserveHeaderChrome={isConnectedToThisChannel}
+							data-flx="channel.channel-view.guild-channel-view.channel-compact-call-surface--2"
+						/>
+						<MusicCallSidePanel
+							channel={channel}
+							enabled={isVoiceTextCallExpanded}
+							data-flx="channel.channel-view.guild-channel-view.music-call-side-panel--2"
+						/>
+					</div>
 				}
 				chatArea={
 					<ChannelChatLayout
