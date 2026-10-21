@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import assert from 'node:assert/strict';
+import {isMusicIdentity} from '@app/features/music/MusicIdentity';
 import type {LivekitParticipantSnapshot} from '@app/features/voice/engine/VoiceParticipantStateMachine';
 import {asVoiceConnectionQuality, VoiceTrackSource} from '@app/features/voice/engine/VoiceTrackSource';
 import {assertNonNullObject, assertString} from '@app/features/voice/engine/v2/VoiceEngineV2AppAdapterAssertions';
@@ -168,6 +169,7 @@ export class VoiceEngineV2AppParticipantAdapter {
 	upsertParticipant(participant: Participant): void {
 		assertNonNullObject(participant, 'participant');
 		assertString(participant.identity, 'participant.identity');
+		if (isMusicIdentity(participant.identity)) return;
 		if (this.isConnectionDiscarded(extractParticipantConnectionId(participant.identity))) return;
 		const previous = this.participants[participant.identity];
 		const snapshot = snapshotFromParticipant(participant, previous);

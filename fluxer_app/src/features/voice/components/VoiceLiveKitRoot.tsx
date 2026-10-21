@@ -2,8 +2,10 @@
 
 import {AttentionOverlay} from '@app/features/attention/AttentionOverlay';
 import AttentionStore from '@app/features/attention/AttentionStore';
+import {bindMusicRoom} from '@app/features/music/MusicRoomBinding';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
+import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
 import type {Room} from 'livekit-client';
 import type React from 'react';
@@ -44,6 +46,15 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 
 	// Nudges ("chamar atenção") arrive as data messages in the call.
 	useEffect(() => (room ? AttentionStore.bindRoom(room) : undefined), [room]);
+
+	// Channel music: state pushed by the music participant, initial fetch, local volume.
+	// The room and the channel come from the same connection snapshot (App re-renders on room change).
+	const musicGuildId = room ? MediaEngine.guildId : null;
+	const musicChannelId = room ? MediaEngine.channelId : null;
+	useEffect(
+		() => (room && musicChannelId ? bindMusicRoom(room, musicGuildId, musicChannelId) : undefined),
+		[room, musicGuildId, musicChannelId],
+	);
 
 	useEffect(() => {
 		if (!room || components) {
