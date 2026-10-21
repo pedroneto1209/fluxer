@@ -151,6 +151,34 @@ export async function deleteSound(guildId: string, soundId: string): Promise<voi
 	});
 }
 
+export interface AttentionWink {
+	id: string;
+	name: string;
+	emoji: string | null;
+	durationMs: number;
+	contentType: string;
+}
+
+// "Chamar atenção" animations, curated on the server.
+export async function listWinks(): Promise<Array<AttentionWink>> {
+	const response = await request('/api/winks');
+	const body = (await response.json()) as {
+		winks: Array<{id: string; name: string; emoji: string | null; duration_ms: number; content_type: string}>;
+	};
+	return body.winks.map((wink) => ({
+		id: wink.id,
+		name: wink.name,
+		emoji: wink.emoji,
+		durationMs: wink.duration_ms,
+		contentType: wink.content_type,
+	}));
+}
+
+export async function fetchWinkVideo(winkId: string): Promise<Blob> {
+	const response = await request(`/api/winks/${encodeURIComponent(winkId)}/video`);
+	return await response.blob();
+}
+
 export async function fetchSoundAudio(guildId: string, soundId: string): Promise<ArrayBuffer> {
 	const response = await request(
 		`/api/guilds/${encodeURIComponent(guildId)}/sounds/${encodeURIComponent(soundId)}/audio`,

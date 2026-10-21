@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import Accessibility from '@app/features/accessibility/state/Accessibility';
 import {LongPressable} from '@app/features/app/components/LongPressable';
+import {AttentionButton} from '@app/features/attention/AttentionButton';
 import Channels from '@app/features/channel/state/Channels';
 import {WATCH_STREAM_DESCRIPTOR} from '@app/features/i18n/utils/CommonMessageDescriptors';
 import {isKeyboardActivationKey} from '@app/features/input/utils/KeyboardUtils';
@@ -301,7 +301,6 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 		: getVoiceDeafenedStatusLabel(i18n, isCurrentUser);
 	const deafenStatusClassName = isModeratorDeafened ? styles.participantIconRed : styles.participantIconMuted;
 	const isActuallySpeaking = displayState.speaking;
-	const shouldAnimateTileAvatar = isActuallySpeaking && !Accessibility.useReducedMotion;
 	const isMobileExperience = isMobileExperienceEnabled();
 	const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
 	const tileGroup = useVoiceTileGroup();
@@ -328,6 +327,8 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 	const isScreenShare = asVoiceTrackSource(trackRef.source) === VoiceTrackSource.ScreenShare;
 	const popoutScope = useContext(VoicePopoutScopeContext);
 	const isInsideTilePopout = popoutScope === 'tile';
+	const showAttentionButton =
+		!isLocalParticipant && !isScreenShare && !isInsideTilePopout && participantUser != null && !participantUser.bot;
 	const tilePopoutKey = getVoiceTilePopoutKey(identity, isScreenShare ? 'screen_share' : 'camera');
 	const isTilePoppedOut = popoutScope !== 'tile' && PopoutWindowManager.isOpen(tilePopoutKey);
 	const tilePopoutTransition = usePoppedOutTransition(isTilePoppedOut);
@@ -983,7 +984,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 							user={participantUser}
 							size={TILE_AVATAR_BASE}
 							mediaSize={TILE_AVATAR_MEDIA_SIZE}
-							forceAnimate={shouldAnimateTileAvatar}
+							forceAnimateIgnoringSettings
 							className={styles.avatarFlexShrink}
 							style={TILE_AVATAR_STYLE}
 							guildId={guildId}
@@ -1006,7 +1007,6 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 		placeholderStyle,
 		previewUrl,
 		screenSharePlaceholderStyle,
-		shouldAnimateTileAvatar,
 		trackRef,
 		shouldHideOwnScreenShareVideo,
 	]);
@@ -1040,6 +1040,11 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 					tabIndex={isInsideTilePopout ? undefined : 0}
 				>
 					{mediaNode}
+					{showAttentionButton && participantUser && (
+						<span className={styles.attentionCorner} data-flx="voice.voice-participant-tile.attention-corner">
+							<AttentionButton user={participantUser} />
+						</span>
+					)}
 					{isScreenShareBuffering &&
 						!isFocusedPlaceholderTile &&
 						screenShareBufferingPresentation === 'last-frame' &&
