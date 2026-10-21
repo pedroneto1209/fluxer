@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: var(--radius-full);
+	background-color: var(--status-danger);
+	color: #fff;
+	cursor: pointer;
+	transition: transform 0.08s ease;
+}
+
+.button:hover {
+	transform: scale(1.1);
+}
+
+.button:active {
+	transform: scale(0.95);
+}
+
+.button:focus-visible {
+	outline: 0.125rem solid var(--text-primary);
+	outline-offset: 0.125rem;
+}

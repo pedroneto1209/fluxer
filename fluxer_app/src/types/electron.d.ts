@@ -361,6 +361,7 @@ export interface ElectronAPI {
 	windowMinimize?(): void;
 	windowMaximize?(): void;
 	windowClose?(): void;
+	windowBringToFront?(options?: {shake?: boolean}): void;
 	passkeyIsSupported?(): Promise<boolean>;
 	passkeyRegister?(
 		options: unknown,

@@ -3,6 +3,7 @@
 import Accessibility, {DMMessagePreviewMode} from '@app/features/accessibility/state/Accessibility';
 import {LongPressable} from '@app/features/app/components/LongPressable';
 import {getChannelUnreadState} from '@app/features/app/components/layout/utils/ChannelUnreadState';
+import {AttentionButton} from '@app/features/attention/AttentionButton';
 import {CustomStatusDisplay} from '@app/features/app/components/shared/custom_status_display/CustomStatusDisplay';
 import {GroupDMAvatar} from '@app/features/app/components/shared/GroupDMAvatar';
 import {useChannelHoverPreload} from '@app/features/app/hooks/useChannelHoverPreload';
@@ -592,6 +593,11 @@ const ResolvedDMListItem = observer(function ResolvedDMListItem({
 								</span>
 							)}
 						</div>
+						{!isGroupDM && recipient && !isBotDM && (
+							<span className={styles.dmItemAttention} data-flx="channel.direct-message.dm-list-item.attention">
+								<AttentionButton user={recipient} />
+							</span>
+						)}
 						<FocusRing offset={-2} data-flx="channel.direct-message.dm-list-item.focus-ring--3">
 							<button
 								type="button"

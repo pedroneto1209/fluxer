@@ -175,6 +175,37 @@ function applyUnreadBadge(badge: number): void {
 	setDesktopTrayUnreadBadge(badge);
 }
 
+const SHAKE_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+	[-12, 0],
+	[12, -4],
+	[-10, 4],
+	[10, 0],
+	[-8, -3],
+	[8, 3],
+	[-5, 0],
+	[5, 2],
+	[-2, -1],
+	[0, 0],
+];
+const SHAKE_STEP_MS = 30;
+let shakingWindow: BrowserWindow | null = null;
+
+function shakeWindow(win: BrowserWindow): void {
+	if (shakingWindow === win) return;
+	shakingWindow = win;
+	const [x, y] = win.getPosition();
+	SHAKE_OFFSETS.forEach(([dx, dy], index) => {
+		setTimeout(() => {
+			if (win.isDestroyed()) return;
+			win.setPosition(x + dx, y + dy);
+			if (index === SHAKE_OFFSETS.length - 1) {
+				win.setPosition(x, y);
+				shakingWindow = null;
+			}
+		}, index * SHAKE_STEP_MS);
+	});
+}
+
 export function registerIpcHandlers(): void {
 	registerVoiceDebugEventSinkPopoutIpcHandlers();
 	registerVoiceBackgroundMediaCacheHandlers();
@@ -363,6 +394,28 @@ export function registerIpcHandlers(): void {
 	});
 	ipcMain.handle('window-is-maximized', (event): boolean => {
 		return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
+	});
+	// "Chamar atenção" (MSN-style nudge): bring the main window back from the tray or
+	// taskbar, past Windows' focus-stealing guard, and optionally shake it.
+	ipcMain.on('window-bring-to-front', (event, options: unknown) => {
+		const win = BrowserWindow.fromWebContents(event.sender);
+		if (!win || win.isDestroyed() || win !== getMainWindow()) return;
+		const shake = Boolean(options && typeof options === 'object' && (options as {shake?: unknown}).shake === true);
+		if (win.isMinimized()) win.restore();
+		if (!win.isVisible()) win.show();
+		win.setAlwaysOnTop(true, 'screen-saver');
+		win.show();
+		win.focus();
+		win.moveTop();
+		win.flashFrame(true);
+		setTimeout(() => {
+			if (win.isDestroyed()) return;
+			win.setAlwaysOnTop(false);
+			win.flashFrame(false);
+		}, 1500);
+		if (shake && !win.isMaximized() && !win.isFullScreen()) {
+			shakeWindow(win);
+		}
 	});
 	ipcMain.handle('theme-studio-popout-focus', (): boolean => {
 		return focusThemeStudioPopoutWindow();

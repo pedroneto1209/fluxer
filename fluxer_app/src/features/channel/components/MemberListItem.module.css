@@ -128,3 +128,22 @@
 .userTag {
 	margin-left: 0.25rem;
 }
+
+/* "Chamar atenção" button: revealed while the row is hovered or focused. */
+.attentionSlot {
+	display: flex;
+	align-items: center;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+
+.button:hover .attentionSlot,
+.button:focus-within .attentionSlot {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.attentionSlot {
+		opacity: 1;
+	}
+}

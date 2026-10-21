@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {AttentionButton} from '@app/features/attention/AttentionButton';
 import Authentication from '@app/features/auth/state/Authentication';
 import {UserTag} from '@app/features/channel/components/ChannelUserTag';
 import {CompactMemberCustomStatus} from '@app/features/channel/components/CompactMemberCustomStatus';
@@ -257,6 +258,11 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 							/>
 						</div>
 					</span>
+					{!isCurrentUser && !user.bot && (
+						<span className={styles.attentionSlot} data-flx="channel.member-list-item.attention-slot">
+							<AttentionButton user={user} />
+						</span>
+					)}
 				</div>
 			</button>
 		</FocusRingWrapper>

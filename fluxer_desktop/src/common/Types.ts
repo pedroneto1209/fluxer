@@ -272,6 +272,7 @@ export interface ElectronAPI {
 	windowMaximize: () => void;
 	windowClose: () => void;
 	windowIsMaximized: () => Promise<boolean>;
+	windowBringToFront: (options?: {shake?: boolean}) => void;
 	focusThemeStudioPopout: () => Promise<boolean>;
 
 	popoutSetAlwaysOnTop: (key: string, flag: boolean) => Promise<boolean>;

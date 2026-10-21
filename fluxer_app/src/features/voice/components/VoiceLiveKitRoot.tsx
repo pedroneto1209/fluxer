@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {AttentionOverlay} from '@app/features/attention/AttentionOverlay';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
@@ -56,7 +57,12 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 	}, [components, room]);
 
 	if (!room) {
-		return <VoiceRoomContext.Provider value={undefined}>{children}</VoiceRoomContext.Provider>;
+		return (
+			<VoiceRoomContext.Provider value={undefined}>
+				{children}
+				<AttentionOverlay data-flx="app.app.app-wrapper.attention-overlay" />
+			</VoiceRoomContext.Provider>
+		);
 	}
 
 	return (
@@ -64,6 +70,7 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 			<RoomContext.Provider value={room}>
 				{children}
 				{components && <components.RoomAudioRenderer data-flx="app.app.app-wrapper.room-audio-renderer" />}
+				<AttentionOverlay data-flx="app.app.app-wrapper.attention-overlay" />
 			</RoomContext.Provider>
 		</VoiceRoomContext.Provider>
 	);

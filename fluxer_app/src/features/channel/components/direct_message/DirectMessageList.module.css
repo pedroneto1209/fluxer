@@ -750,3 +750,22 @@
 	height: 1rem;
 	width: 1rem;
 }
+
+/* "Chamar atenção" button: revealed while the DM row is hovered or focused. */
+.dmItemAttention {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	margin-inline-end: 0.25rem;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+
+.dmItem:hover .dmItemAttention,
+.dmItemSelected:hover .dmItemAttention,
+.dmItemUnread:hover .dmItemAttention,
+.dmItem:focus-within .dmItemAttention,
+.dmItemSelected:focus-within .dmItemAttention,
+.dmItemUnread:focus-within .dmItemAttention {
+	opacity: 1;
+}
