@@ -79,6 +79,14 @@ class MusicStore {
 		this.panelOpen = !this.panelOpen;
 	}
 
+	openPanel(): void {
+		this.panelOpen = true;
+	}
+
+	closePanel(): void {
+		this.panelOpen = false;
+	}
+
 	async refreshGuildSessions(guildId: string): Promise<void> {
 		try {
 			const sessions = await listGuildSessions(guildId);

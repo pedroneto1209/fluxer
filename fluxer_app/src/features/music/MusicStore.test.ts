@@ -68,6 +68,16 @@ describe('MusicStore', () => {
 		expect(MusicStore.currentPositionMs('c1', 1_300_000)).toBe(310_000);
 	});
 
+	it('opens, closes and toggles the panel', () => {
+		MusicStore.closePanel();
+		expect(MusicStore.panelOpen).toBe(false);
+		MusicStore.openPanel();
+		MusicStore.openPanel();
+		expect(MusicStore.panelOpen).toBe(true);
+		MusicStore.togglePanel();
+		expect(MusicStore.panelOpen).toBe(false);
+	});
+
 	it('currentPositionMs is 0 without a session', () => {
 		expect(MusicStore.currentPositionMs('nope')).toBe(0);
 	});

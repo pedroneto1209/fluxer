@@ -4,6 +4,7 @@ import * as VoiceStateCommands from '@app/features/devtools/commands/VoiceStateC
 import {MORE_OPTIONS_DESCRIPTOR, TURN_OFF_CAMERA_DESCRIPTOR} from '@app/features/i18n/utils/CommonMessageDescriptors';
 import Keybind from '@app/features/input/state/InputKeybind';
 import {getPushToTalkHoldLabel} from '@app/features/input/utils/PushToTalkHint';
+import {MusicControlBarButton} from '@app/features/music/MusicControlBarButton';
 import {SoundType} from '@app/features/notification/utils/SoundUtils';
 import Permission from '@app/features/permissions/state/Permission';
 import NativePermission from '@app/features/permissions/system/state/NativePermission';
@@ -812,6 +813,7 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 					</FocusRing>
 				</Tooltip>
 			</div>
+			<MusicControlBarButton data-flx="voice.voice-control-bar.voice-control-bar-inner.music-control-bar-button" />
 			<div
 				className={styles.buttonContainer}
 				data-flx="voice.voice-control-bar.voice-control-bar-inner.button-container--2"
