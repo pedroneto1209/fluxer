@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {MusicVolumeState, type MusicVolumeStorage} from '@app/features/music/MusicVolume';
+import {composeVoiceVolumeGain} from '@app/features/voice/utils/VoiceVolumeUtils';
 import type {Room} from 'livekit-client';
 import {describe, expect, it, vi} from 'vitest';
 
@@ -115,5 +116,20 @@ describe('MusicVolume', () => {
 			remoteParticipants: new Map([['music_1', {identity: 'music_1', audioTrackPublications: new Map([['TR', {}]])}]]),
 		} as unknown as Room;
 		expect(() => state.applyToRoom(room)).not.toThrow();
+	});
+
+	it('scales with the global output volume like other voices', () => {
+		const state = new MusicVolumeState(() => memoryStorage());
+		state.setVolume(0.5);
+		const music = fakeParticipant('music_42');
+		state.applyToRoom(fakeRoom(music), 100);
+		expect(music.track.setVolume).toHaveBeenLastCalledWith(0.5);
+		state.applyToRoom(fakeRoom(music), 50);
+		expect(music.track.setVolume).toHaveBeenLastCalledWith(0.5 * composeVoiceVolumeGain(50));
+		expect(composeVoiceVolumeGain(50)).toBeLessThan(1);
+		state.applyToRoom(fakeRoom(music), 0);
+		expect(music.track.setVolume).toHaveBeenLastCalledWith(0);
+		state.applyToRoom(fakeRoom(music), 200);
+		expect(music.track.setVolume).toHaveBeenLastCalledWith(0.5 * composeVoiceVolumeGain(200));
 	});
 });
