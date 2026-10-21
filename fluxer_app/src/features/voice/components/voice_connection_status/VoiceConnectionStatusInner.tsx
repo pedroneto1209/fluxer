@@ -39,7 +39,15 @@ import {VOICE_DISCONNECT_DESCRIPTOR, VOICE_IN_CHAT_DESCRIPTOR} from '@app/featur
 import {getActiveVoiceProcessingMode} from '@app/features/voice/utils/VoiceProcessingProfile';
 import {msg} from '@lingui/core/macro';
 import {useLingui} from '@lingui/react/macro';
-import {ArrowClockwiseIcon, DesktopIcon, DeviceMobileIcon, PhoneXIcon, UsersIcon, XIcon} from '@phosphor-icons/react';
+import {
+	ArrowClockwiseIcon,
+	DesktopIcon,
+	DeviceMobileIcon,
+	MusicNotesIcon,
+	PhoneXIcon,
+	UsersIcon,
+	XIcon,
+} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {type MouseEvent as ReactMouseEvent, useCallback} from 'react';
@@ -267,6 +275,30 @@ const ResolvedVoiceConnectionStatusInner = observer(function ResolvedVoiceConnec
 						pressed={isProcessingActive}
 						data-flx="voice.voice-connection-status.voice-connection-status-inner.audio-processing-button.open-noise-suppression-modal"
 					/>
+					<Tooltip text="Soundboard" data-flx="voice.voice-connection-status.voice-connection-status-inner.tooltip.soundboard">
+						<FocusRing
+							offset={-2}
+							data-flx="voice.voice-connection-status.voice-connection-status-inner.focus-ring.soundboard"
+						>
+							<button
+								type="button"
+								className={styles.controlButton}
+								onClick={() => {
+									void import('@app/features/voice/soundboard/SoundboardModal').then(({openSoundboard}) =>
+										openSoundboard(),
+									);
+								}}
+								aria-label="Soundboard"
+								data-flx="voice.voice-connection-status.voice-connection-status-inner.control-button.soundboard"
+							>
+								<MusicNotesIcon
+									weight="fill"
+									className={styles.icon}
+									data-flx="voice.voice-connection-status.voice-connection-status-inner.icon.soundboard"
+								/>
+							</button>
+						</FocusRing>
+					</Tooltip>
 					<Tooltip
 						text={disconnectLabel}
 						data-flx="voice.voice-connection-status.voice-connection-status-inner.tooltip--2"

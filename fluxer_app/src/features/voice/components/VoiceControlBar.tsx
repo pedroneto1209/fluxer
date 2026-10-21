@@ -101,6 +101,7 @@ import {
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
 	MonitorPlayIcon,
+	MusicNotesIcon,
 	PhoneXIcon,
 	SpeakerHighIcon,
 	SpeakerSlashIcon,
@@ -302,6 +303,9 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 	}, []);
 	const handleToggleDeafen = useCallback(() => {
 		VoiceStateCommands.toggleSelfDeaf(null);
+	}, []);
+	const handleOpenSoundboard = useCallback(() => {
+		void import('@app/features/voice/soundboard/SoundboardModal').then(({openSoundboard}) => openSoundboard());
 	}, []);
 	const handleToggleVideo = useCallback(async () => {
 		if (!isConnected) return;
@@ -772,6 +776,37 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 								weight="bold"
 								className={styles.iconSmall}
 								data-flx="voice.voice-control-bar.voice-control-bar-inner.icon-small.output-settings"
+							/>
+						</button>
+					</FocusRing>
+				</Tooltip>
+			</div>
+			<div
+				className={styles.buttonContainer}
+				data-flx="voice.voice-control-bar.voice-control-bar-inner.button-container.soundboard"
+			>
+				<Tooltip
+					text={() => (
+						<TooltipWithKeybind
+							label="Soundboard"
+							action="voice_toggle_soundboard"
+							data-flx="voice.voice-control-bar.voice-control-bar-inner.tooltip-with-keybind.soundboard"
+						/>
+					)}
+					data-flx="voice.voice-control-bar.voice-control-bar-inner.tooltip.soundboard"
+				>
+					<FocusRing offset={-2} data-flx="voice.voice-control-bar.voice-control-bar-inner.focus-ring.soundboard">
+						<button
+							type="button"
+							className={clsx(styles.button, styles.buttonUnmuted)}
+							onClick={handleOpenSoundboard}
+							aria-label="Soundboard"
+							data-flx="voice.voice-control-bar.voice-control-bar-inner.button.soundboard"
+						>
+							<MusicNotesIcon
+								weight="fill"
+								className={styles.icon}
+								data-flx="voice.voice-control-bar.voice-control-bar-inner.icon.soundboard"
 							/>
 						</button>
 					</FocusRing>
