@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {musicChannelIdFromGridEntry} from '@app/features/music/MusicGridEntry';
+import {MusicTile} from '@app/features/music/MusicTile';
 import styles from '@app/features/voice/components/VoiceGridLayout.module.css';
 import {
 	getVoiceGridRowStyle,
@@ -133,6 +135,14 @@ export function VoiceGridLayout({
 				data-flx="voice.voice-grid-layout.grid"
 			>
 				{visibleEntries.map((entry) => {
+					const musicChannelId = musicChannelIdFromGridEntry(entry);
+					if (musicChannelId) {
+						return (
+							<div key={entry.key} className={styles.gridItem} data-flx="voice.voice-grid-layout.grid-item.music">
+								<MusicTile channelId={musicChannelId} data-flx="voice.voice-grid-layout.music-tile" />
+							</div>
+						);
+					}
 					const groupValue = {
 						hiddenConnectionCount: entry.hiddenConnectionCount,
 						deviceConnectionCount: entry.deviceConnectionCount,

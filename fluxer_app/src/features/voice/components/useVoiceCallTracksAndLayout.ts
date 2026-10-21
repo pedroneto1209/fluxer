@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type {Channel} from '@app/features/channel/models/Channel';
+import {useMusicGridEntries} from '@app/features/music/MusicTile';
 import Users from '@app/features/user/state/Users';
 import * as VoiceCallLayoutCommands from '@app/features/voice/commands/VoiceCallLayoutCommands';
 import {parseStreamKey} from '@app/features/voice/components/StreamKeys';
@@ -491,13 +492,14 @@ export function useVoiceCallTracksAndLayout({channel, expandedUserIds}: UseVoice
 		() => consolidateVoiceGridTracks({tracks: gridTracks, expandedUserIds}),
 		[gridTracks, expandedUserIds],
 	);
+	const gridEntriesWithMusic = useMusicGridEntries(gridEntries, channel.id);
 	return {
 		tracks: renderableTracks,
 		screenShareTracks: sortedScreenShareTracksWithVirtual,
 		cameraTracksAll: sortedCameraTracksAll,
 		filteredCameraTracks: sortedFilteredCameraTracks,
 		hasScreenShare,
-		gridEntries,
+		gridEntries: gridEntriesWithMusic,
 		participantCount,
 		layoutMode,
 		pinnedParticipantIdentity,
