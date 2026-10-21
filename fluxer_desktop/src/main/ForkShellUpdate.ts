@@ -50,16 +50,29 @@ export async function armBundledRendererShellUpdates(): Promise<void> {
 			return {shellNewer, modulesChanged: false};
 		},
 		start: async () => {
+			// Show the same update splash the module bootstrap uses, so the download and the
+			// restart are visible instead of the app sitting still until it relaunches.
+			const splash = await import('@electron/main/SplashWindow');
+			// The app is already running; closing this splash must not quit it.
+			splash.markSplashLaunching();
+			splash.openSplashWindow();
+			splash.setSplashState({status: splash.SplashStatus.SHELL_UPDATE_DOWNLOADING, progress: null});
 			const {runShellSelfUpdate} = await import('@electron/main/ShellSelfUpdate');
 			const result = await runShellSelfUpdate(plan, {
 				onDownloading: (progress) => {
-					logger.info('Downloading the shell update', {progress});
+					splash.setSplashState({status: splash.SplashStatus.SHELL_UPDATE_DOWNLOADING, progress});
 				},
 				onRestarting: () => {
 					logger.info('Restarting to apply the shell update');
+					splash.setSplashState({status: splash.SplashStatus.SHELL_UPDATE_RESTARTING});
 				},
 			});
+			splash.closeSplashWindow();
 			logger.warn('The shell self update did not restart the app', result);
+			if (result.reason !== 'no-update') {
+				const {reportDesktopUpdateFailure} = await import('@electron/main/DesktopUpdatePrompt');
+				await reportDesktopUpdateFailure(result);
+			}
 		},
 	});
 
