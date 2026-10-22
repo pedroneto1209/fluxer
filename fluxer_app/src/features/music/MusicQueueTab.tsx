@@ -23,6 +23,7 @@ import {Button} from '@app/features/ui/button/Button';
 import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Scroller} from '@app/features/ui/components/Scroller';
+import FocusRing from '@app/features/ui/focus_ring/FocusRing';
 import {DotsSixVerticalIcon, PlusIcon, XIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
@@ -149,9 +150,18 @@ function QueueRow({item, index, session, run, pending}: RowProps & {index: numbe
 			)}
 			data-flx={item.recommended ? 'music.music-queue-tab.recommended-item' : 'music.music-queue-tab.item'}
 		>
-			<div className={styles.dragHandle} aria-hidden="true" data-flx="music.music-queue-tab.item.drag-handle">
-				<DotsSixVerticalIcon weight="bold" data-flx="music.music-queue-tab.item.drag-handle.icon" />
-			</div>
+			<FocusRing offset={-2} data-flx="music.music-queue-tab.item.drag-handle.focus-ring">
+				<div
+					className={styles.dragHandle}
+					role="button"
+					tabIndex={0}
+					aria-label={`${item.title}: arraste para reordenar`}
+					title="Arraste para reordenar"
+					data-flx="music.music-queue-tab.item.drag-handle"
+				>
+					<DotsSixVerticalIcon weight="bold" data-flx="music.music-queue-tab.item.drag-handle.icon" />
+				</div>
+			</FocusRing>
 			<RowBody item={item} session={session} run={run} pending={pending} />
 		</li>
 	);
