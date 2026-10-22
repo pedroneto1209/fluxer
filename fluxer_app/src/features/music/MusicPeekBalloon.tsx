@@ -73,7 +73,9 @@ export const MusicPeekBalloon = observer(function MusicPeekBalloon({
 							<span className={styles.artist} title={view.current.artist} data-flx="music.peek-balloon.artist">
 								{view.current.artist}
 							</span>
-							{view.current.addedBy && <AddedBy userId={view.current.addedBy} data-flx="music.peek-balloon.added-by" />}
+							{view.current.addedBy && (
+								<AddedBy userId={view.current.addedBy} prefix="por " data-flx="music.peek-balloon.added-by" />
+							)}
 						</span>
 					</div>
 					<div className={styles.progress} data-flx="music.peek-balloon.progress">

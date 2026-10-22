@@ -98,13 +98,23 @@ export function SourceTag({
 	);
 }
 
-export const AddedBy = observer(function AddedBy({userId, 'data-flx': dataFlx}: {userId: string; 'data-flx': string}) {
+export const AddedBy = observer(function AddedBy({
+	userId,
+	prefix,
+	'data-flx': dataFlx,
+}: {
+	userId: string;
+	/** Text before the name, e.g. "por ". */
+	prefix?: string;
+	'data-flx': string;
+}) {
 	const user = Users.getUser(userId);
 	if (!user) return null;
 	return (
 		<span className={styles.addedBy} data-flx={dataFlx}>
 			<Avatar user={user} size={16} data-flx={`${dataFlx}.avatar`} />
 			<span className={styles.addedByName} data-flx={`${dataFlx}.name`}>
+				{prefix}
 				{user.displayName}
 			</span>
 		</span>
