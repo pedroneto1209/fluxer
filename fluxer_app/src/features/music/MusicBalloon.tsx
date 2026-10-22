@@ -27,7 +27,7 @@ import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import React, {useCallback} from 'react';
 
-const TRIGGER_ATTRIBUTE = 'data-music-balloon-trigger';
+export const TRIGGER_ATTRIBUTE = 'data-music-balloon-trigger';
 
 export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: Channel}) {
 	const session = MusicStore.sessionByChannel.get(channel.id) ?? null;
@@ -97,13 +97,13 @@ export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: 
 	);
 });
 
-function isOtherTriggerClick(event: Event | undefined): boolean {
+export function isOtherTriggerClick(event: Event | undefined): boolean {
 	const target = event?.target;
 	return event instanceof MouseEvent && target instanceof Element && target.closest(`[${TRIGGER_ATTRIBUTE}]`) != null;
 }
 
 /** Clicking another trigger closes the balloon here so the click reopens it at that trigger. */
-function moveFromOtherTrigger(event: React.MouseEvent<HTMLElement>): boolean {
+export function moveFromOtherTrigger(event: React.MouseEvent<HTMLElement>): boolean {
 	const open = PopoutState.popouts[MUSIC_BALLOON_KEY];
 	if (open && open.target !== event.currentTarget) PopoutCommands.finishClose(MUSIC_BALLOON_KEY);
 	return true;

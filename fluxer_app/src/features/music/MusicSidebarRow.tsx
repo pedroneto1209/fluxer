@@ -2,17 +2,17 @@
 
 // "🎵 Música · <title>" under a voice channel in the sidebar, visible to the whole community.
 // Inside that call the click opens the music balloon to its right and the context menu has
-// the music volume and mute; elsewhere the click goes to the channel.
+// the music volume and mute; elsewhere the click opens the read-only peek.
 
 import type {Channel} from '@app/features/channel/models/Channel';
 import {MusicBalloonPopout} from '@app/features/music/MusicBalloon';
 import {isMusicUsableInCall} from '@app/features/music/MusicCall';
+import {MusicPeekPopout} from '@app/features/music/MusicPeekBalloon';
 import {musicRowLabel, pickSidebarMusic} from '@app/features/music/MusicSidebarLabel';
 import {ensureMusicSidebarPolling} from '@app/features/music/MusicSidebarPolling';
 import styles from '@app/features/music/MusicSidebarRow.module.css';
 import MusicStore from '@app/features/music/MusicStore';
 import MusicVolume from '@app/features/music/MusicVolume';
-import * as NavigationCommands from '@app/features/navigation/commands/NavigationCommands';
 import {MenuGroup} from '@app/features/ui/action_menu/MenuGroup';
 import {MenuItem} from '@app/features/ui/action_menu/MenuItem';
 import {MenuItemSlider} from '@app/features/ui/action_menu/MenuItemSlider';
@@ -55,7 +55,6 @@ export const MusicSidebarRow = observer(function MusicSidebarRow({
 		liveSession: inCall ? MusicStore.sessionByChannel.get(channel.id) : undefined,
 		available: MusicStore.availability === 'available',
 	});
-	const handleClick = useCallback(() => NavigationCommands.selectChannel(guildId, channel.id), [guildId, channel.id]);
 	const handleContextMenu = useCallback(
 		(event: React.MouseEvent) => {
 			if (MediaEngine.channelId !== channel.id) return;
@@ -76,14 +75,10 @@ export const MusicSidebarRow = observer(function MusicSidebarRow({
 		);
 	}
 	return (
-		<button
-			type="button"
-			className={styles.row}
-			onClick={handleClick}
-			onContextMenu={handleContextMenu}
-			data-flx="music.sidebar-row.row"
-		>
-			{musicRowLabel(music.title)}
-		</button>
+		<MusicPeekPopout guildId={guildId} channel={channel} data-flx="music.sidebar-row.peek-popout">
+			<button type="button" className={styles.row} onContextMenu={handleContextMenu} data-flx="music.sidebar-row.row">
+				{musicRowLabel(music.title)}
+			</button>
+		</MusicPeekPopout>
 	);
 });

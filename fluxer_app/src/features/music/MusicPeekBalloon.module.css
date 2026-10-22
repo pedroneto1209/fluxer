@@ -1,0 +1,132 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.balloon {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-3);
+	width: 21.25rem;
+	max-width: calc(100vw - 1.5rem);
+	max-height: min(35rem, 70vh);
+	overflow-y: auto;
+	box-sizing: border-box;
+	padding: var(--spacing-3);
+	border: 0.0625rem solid var(--background-modifier-accent);
+	border-radius: 0.5rem;
+	background-color: var(--form-surface-background);
+	color: var(--text-primary);
+}
+
+.current {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-3);
+	min-width: 0;
+}
+
+.text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.title,
+.artist {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.title {
+	font-size: 0.875rem;
+	font-weight: 600;
+}
+
+.artist {
+	color: var(--text-primary-muted);
+	font-size: 0.8125rem;
+}
+
+.progress {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	color: var(--text-primary-muted);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.progressBar {
+	position: relative;
+	flex: 1 1 auto;
+	height: 0.1875rem;
+	overflow: hidden;
+	border-radius: 999px;
+	background-color: var(--background-modifier-accent);
+}
+
+.progressFill {
+	height: 100%;
+	border-radius: inherit;
+	background-color: var(--text-primary);
+}
+
+.progressIndeterminate::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	border-radius: inherit;
+	background-color: var(--text-primary);
+	opacity: 0.4;
+}
+
+.sectionTitle {
+	margin: 0;
+	color: var(--text-primary-muted);
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.upNext {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.upNextItem {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	min-width: 0;
+}
+
+.muted {
+	margin: 0;
+	color: var(--text-primary-muted);
+	font-size: 0.875rem;
+}
+
+.join {
+	padding: var(--spacing-2) var(--spacing-3);
+	border: none;
+	border-radius: var(--radius-lg);
+	background-color: var(--brand-primary);
+	color: var(--text-on-brand-primary, #fff);
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.join:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

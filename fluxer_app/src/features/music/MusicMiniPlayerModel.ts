@@ -16,7 +16,10 @@ export type MiniPlayerView =
 			durationMs: number;
 	  };
 
-export function miniPlayerView(session: MusicSessionState | null, nowMs: number): MiniPlayerView {
+/** The part of a session the position math needs (a live session or a polled guild one). */
+export type MusicPositionSource = Pick<MusicSessionState, 'nowPlaying' | 'paused' | 'positionMs' | 'positionAt'>;
+
+export function miniPlayerView(session: MusicPositionSource | null, nowMs: number): MiniPlayerView {
 	const track = session?.nowPlaying;
 	if (!session || !track) return {kind: 'idle'};
 	const base = Math.max(0, session.positionMs);
