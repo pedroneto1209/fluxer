@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// "Fila" tab of the music UI: the users' queue (reorderable), the recommended items that
-// follow it (dimmed, not reorderable), the Spotify radio notice and "Encerrar música".
+// "Fila" tab of the music UI: the users' queue and the recommended items that follow it
+// (dimmed). Every row drags by its whole body; the server clamps user items to the user
+// section and promotes a dropped recommended item into it. The Spotify radio notice and "Encerrar música".
 // Only the lists scroll: "Encerrar música" stays pinned at the bottom of the balloon.
 
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
@@ -14,14 +15,14 @@ import {
 } from '@app/features/music/MusicApi';
 import {queueMoveIndex, queueOverflowLabel} from '@app/features/music/MusicPanelStateMachine';
 import {AddedBy, Artwork, IconButton, SourceTag} from '@app/features/music/MusicParts';
-import {showRadioNotice, splitQueue} from '@app/features/music/MusicQueueModel';
+import {promoteIndex, queueIndexOf, showRadioNotice, splitQueue} from '@app/features/music/MusicQueueModel';
 import styles from '@app/features/music/MusicQueueTab.module.css';
 import MusicStore from '@app/features/music/MusicStore';
 import {Button} from '@app/features/ui/button/Button';
 import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Scroller} from '@app/features/ui/components/Scroller';
-import {DotsSixVerticalIcon, XIcon} from '@phosphor-icons/react';
+import {DotsSixVerticalIcon, PlusIcon, XIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {useCallback, useEffect, useRef, useState} from 'react';
@@ -62,6 +63,15 @@ function RowBody({item, session, run, pending}: RowProps) {
 					)}
 				</span>
 			</div>
+			{item.recommended && (
+				<IconButton
+					label="Adicionar à fila"
+					disabled={pending}
+					icon={<PlusIcon weight="bold" data-flx="music.music-queue-tab.button.promote.icon" />}
+					onClick={() => void run(() => moveInQueue(guildId, channelId, item.id, promoteIndex(session)))}
+					data-flx="music.music-queue-tab.button.promote"
+				/>
+			)}
 			<IconButton
 				label="Remover da fila"
 				disabled={pending}
@@ -73,8 +83,8 @@ function RowBody({item, session, run, pending}: RowProps) {
 	);
 }
 
-/** `index` is the position in the server's whole queue, which is what `move` expects. */
-function UserRow({item, index, session, run, pending}: RowProps & {index: number}) {
+/** Draggable and droppable row; `index` is the position in the server's whole queue, which is what `move` expects. */
+function QueueRow({item, index, session, run, pending}: RowProps & {index: number}) {
 	const rowRef = useRef<HTMLLIElement | null>(null);
 	const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
 	const {guildId, channelId} = session;
@@ -120,15 +130,10 @@ function UserRow({item, index, session, run, pending}: RowProps & {index: number
 	const setRowNode = useCallback(
 		(node: HTMLLIElement | null) => {
 			rowRef.current = node;
+			dragRef(node);
 			dropRef(node);
 		},
-		[dropRef],
-	);
-	const setHandleNode = useCallback(
-		(node: HTMLDivElement | null) => {
-			dragRef(node);
-		},
-		[dragRef],
+		[dragRef, dropRef],
 	);
 
 	return (
@@ -136,33 +141,17 @@ function UserRow({item, index, session, run, pending}: RowProps & {index: number
 			ref={setRowNode}
 			className={clsx(
 				styles.row,
+				item.recommended && styles.rowRecommended,
 				isDragging && styles.rowDragging,
 				dropPosition === 'before' && styles.dropBefore,
 				dropPosition === 'after' && styles.dropAfter,
 			)}
-			data-flx="music.music-queue-tab.item"
+			data-flx={item.recommended ? 'music.music-queue-tab.recommended-item' : 'music.music-queue-tab.item'}
 		>
-			<div
-				ref={setHandleNode}
-				className={styles.dragHandle}
-				role="button"
-				tabIndex={0}
-				aria-label="Arraste para reordenar"
-				title="Arraste para reordenar"
-				data-flx="music.music-queue-tab.item.drag-handle"
-			>
+			<div className={styles.dragHandle} aria-hidden="true" data-flx="music.music-queue-tab.item.drag-handle">
 				<DotsSixVerticalIcon weight="bold" data-flx="music.music-queue-tab.item.drag-handle.icon" />
 			</div>
 			<RowBody item={item} session={session} run={run} pending={pending} />
-		</li>
-	);
-}
-
-/** No drag handle and no drop target: nothing moves into or out of the recommended section. */
-function RecommendedRow(props: RowProps) {
-	return (
-		<li className={clsx(styles.row, styles.rowRecommended)} data-flx="music.music-queue-tab.recommended-item">
-			<RowBody {...props} />
 		</li>
 	);
 }
@@ -212,8 +201,15 @@ export const MusicQueueTab = observer(function MusicQueueTab({
 							</p>
 						) : (
 							<ul className={styles.list} data-flx="music.music-queue-tab.list">
-								{user.map((item, index) => (
-									<UserRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
+								{user.map((item) => (
+									<QueueRow
+										key={item.id}
+										item={item}
+										index={queueIndexOf(session, item.id)}
+										session={session}
+										run={run}
+										pending={pending}
+									/>
 								))}
 							</ul>
 						)}
@@ -229,7 +225,14 @@ export const MusicQueueTab = observer(function MusicQueueTab({
 							</h3>
 							<ul className={styles.list} data-flx="music.music-queue-tab.recommended.list">
 								{recommended.map((item) => (
-									<RecommendedRow key={item.id} item={item} session={session} run={run} pending={pending} />
+									<QueueRow
+										key={item.id}
+										item={item}
+										index={queueIndexOf(session, item.id)}
+										session={session}
+										run={run}
+										pending={pending}
+									/>
 								))}
 							</ul>
 						</section>

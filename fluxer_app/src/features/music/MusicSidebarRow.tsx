@@ -30,7 +30,7 @@ const MusicVolumeMenu = observer(function MusicVolumeMenu({'data-flx': dataFlx}:
 				value={Math.round(MusicVolume.volume * 100)}
 				minValue={0}
 				maxValue={100}
-				onChange={(value) => MusicVolume.setVolume(value / 100)}
+				onChange={(value) => MusicVolume.setVolumeUnmuted(value / 100)}
 				data-flx="music.sidebar-row.volume-slider"
 			/>
 			<MenuItem onClick={MusicVolume.toggleMuted} closeOnSelect={false} data-flx="music.sidebar-row.mute">

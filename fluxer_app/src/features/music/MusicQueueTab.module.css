@@ -56,6 +56,14 @@
 	border-radius: var(--radius-md);
 }
 
+.row {
+	cursor: grab;
+}
+
+.row:active {
+	cursor: grabbing;
+}
+
 .row:hover {
 	background-color: var(--background-modifier-hover);
 }
@@ -85,11 +93,6 @@
 	flex: 0 0 auto;
 	align-items: center;
 	color: var(--text-tertiary);
-	cursor: grab;
-}
-
-.dragHandle:active {
-	cursor: grabbing;
 }
 
 .trackText {

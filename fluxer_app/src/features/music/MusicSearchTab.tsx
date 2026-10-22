@@ -167,6 +167,32 @@ export const MusicSearchTab = observer(function MusicSearchTab({
 		[add],
 	);
 
+	const radioRefs = useRef<Array<HTMLButtonElement | null>>([]);
+	const handleRadioKeyDown = (event: React.KeyboardEvent, from: number) => {
+		const last = SOURCES.length - 1;
+		let to: number;
+		switch (event.key) {
+			case 'ArrowRight':
+			case 'ArrowDown':
+				to = from === last ? 0 : from + 1;
+				break;
+			case 'ArrowLeft':
+			case 'ArrowUp':
+				to = from === 0 ? last : from - 1;
+				break;
+			case 'Home':
+				to = 0;
+				break;
+			case 'End':
+				to = last;
+				break;
+			default:
+				return;
+		}
+		event.preventDefault();
+		handleChoice(SOURCES[to].choice);
+		radioRefs.current[to]?.focus();
+	};
 	const handleChoice = useCallback((next: MusicSearchSourceChoice) => {
 		setChoice(next);
 		saveSearchSource(next);
@@ -194,12 +220,17 @@ export const MusicSearchTab = observer(function MusicSearchTab({
 				aria-label="Fonte da busca"
 				data-flx="music.music-search-tab.switch"
 			>
-				{SOURCES.map(({choice: option, label}) => (
+				{SOURCES.map(({choice: option, label}, optionIndex) => (
 					<FocusRing key={option} offset={-2} data-flx={`music.music-search-tab.switch.${option}.focus-ring`}>
 						<button
 							type="button"
 							role="radio"
 							aria-checked={choice === option}
+							tabIndex={choice === option ? 0 : -1}
+							ref={(node) => {
+								radioRefs.current[optionIndex] = node;
+							}}
+							onKeyDown={(event) => handleRadioKeyDown(event, optionIndex)}
 							className={clsx(styles.switchOption, choice === option && styles.switchOptionActive)}
 							onClick={() => handleChoice(option)}
 							data-flx={`music.music-search-tab.switch.${option}`}

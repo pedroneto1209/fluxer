@@ -6,7 +6,7 @@
 	flex-direction: column;
 	width: 21.25rem;
 	max-width: calc(100vw - 1.5rem);
-	max-height: min(35rem, 70vh);
+	height: min(35rem, 70vh);
 	overflow: hidden;
 	box-sizing: border-box;
 	border: 0.0625rem solid var(--background-modifier-accent);

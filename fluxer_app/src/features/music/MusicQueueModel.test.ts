@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type {MusicQueueItem, MusicSessionState} from '@app/features/music/MusicApi';
-import {queueTabLabel, showRadioNotice, splitQueue} from '@app/features/music/MusicQueueModel';
+import {
+	promoteIndex,
+	queueIndexOf,
+	queueTabLabel,
+	showRadioNotice,
+	splitQueue,
+} from '@app/features/music/MusicQueueModel';
 import {describe, expect, it} from 'vitest';
 
 function item(id: string, recommended: boolean): MusicQueueItem {
@@ -59,5 +65,22 @@ describe('showRadioNotice', () => {
 		expect(showRadioNotice(session([item('u1', false)], true))).toBe(true);
 		expect(showRadioNotice(session([item('u1', false)], false))).toBe(false);
 		expect(showRadioNotice(session([item('u1', false), item('r1', true)], true))).toBe(false);
+	});
+});
+
+describe('queueIndexOf', () => {
+	it('is the position in the whole queue, recommended included', () => {
+		const queue = [item('u1', false), item('u2', false), item('r1', true)];
+		expect(queueIndexOf(session(queue), 'u2')).toBe(1);
+		expect(queueIndexOf(session(queue), 'r1')).toBe(2);
+		expect(queueIndexOf(session(queue), 'nope')).toBe(-1);
+	});
+});
+
+describe('promoteIndex', () => {
+	it('is the number of user items', () => {
+		expect(promoteIndex(session([item('u1', false), item('r1', true), item('r2', true)]))).toBe(1);
+		expect(promoteIndex(session([item('r1', true)]))).toBe(0);
+		expect(promoteIndex(session([]))).toBe(0);
 	});
 });

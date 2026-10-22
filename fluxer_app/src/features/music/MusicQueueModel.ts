@@ -22,3 +22,13 @@ export function queueTabLabel(session: MusicSessionState | null): string {
 export function showRadioNotice(session: MusicSessionState): boolean {
 	return session.spotifyRadio && splitQueue(session.queue).recommended.length === 0;
 }
+
+/** Position of an item in the server's whole queue (user rows, then recommended), or -1. */
+export function queueIndexOf(session: MusicSessionState, itemId: string): number {
+	return session.queue.findIndex((item) => item.id === itemId);
+}
+
+/** Target index that sends an item to the end of the user section (= the user item count). */
+export function promoteIndex(session: MusicSessionState): number {
+	return splitQueue(session.queue).user.length;
+}
