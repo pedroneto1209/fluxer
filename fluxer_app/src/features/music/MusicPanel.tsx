@@ -7,46 +7,34 @@
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
 import type {Channel} from '@app/features/channel/models/Channel';
 import {
-	addToQueue,
 	type MusicQueueItem,
-	type MusicSearchResult,
 	type MusicSessionState,
 	type MusicSource,
-	type MusicTrack,
 	moveInQueue,
 	previous,
 	removeFromQueue,
-	searchTracks,
 	setPaused,
 	skip,
 	stopSession,
 } from '@app/features/music/MusicApi';
 import styles from '@app/features/music/MusicPanel.module.css';
-import {
-	createMusicSearchInput,
-	describeMusicProgress,
-	formatMusicTime,
-	queueMoveIndex,
-	queueOverflowLabel,
-} from '@app/features/music/MusicPanelStateMachine';
+import {describeMusicProgress, queueMoveIndex, queueOverflowLabel} from '@app/features/music/MusicPanelStateMachine';
+import {MusicSearchTab} from '@app/features/music/MusicSearchTab';
 import MusicStore from '@app/features/music/MusicStore';
 import MusicVolume from '@app/features/music/MusicVolume';
 import {Button} from '@app/features/ui/button/Button';
 import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Avatar} from '@app/features/ui/components/Avatar';
-import {Input} from '@app/features/ui/components/form/FormInput';
 import {Scroller} from '@app/features/ui/components/Scroller';
 import FocusRing from '@app/features/ui/focus_ring/FocusRing';
 import {Tooltip} from '@app/features/ui/tooltip/Tooltip';
 import Users from '@app/features/user/state/Users';
 import {
 	DotsSixVerticalIcon,
-	MagnifyingGlassIcon,
 	MusicNoteIcon,
 	PauseIcon,
 	PlayIcon,
-	PlusIcon,
 	SkipBackIcon,
 	SkipForwardIcon,
 	SpeakerHighIcon,
@@ -56,7 +44,7 @@ import {
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import type React from 'react';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useDrag, useDrop} from 'react-dnd';
 
 const QUEUE_DRAG_TYPE = 'fluxer.music.queue-item';
@@ -288,202 +276,6 @@ const MyVolume = observer(function MyVolume() {
 	);
 });
 
-type SearchStatus =
-	| {kind: 'idle'}
-	| {kind: 'loading'}
-	| {kind: 'done'; result: MusicSearchResult}
-	| {kind: 'error'; message: string};
-
-function ResultRow({track, onAdd, adding}: {track: MusicTrack; onAdd: (track: MusicTrack) => void; adding: boolean}) {
-	return (
-		<li className={styles.row} data-flx="music.music-panel.search.result">
-			<Artwork url={track.artworkUrl} size="small" data-flx="music.music-panel.search.result.artwork" />
-			<div className={styles.trackText} data-flx="music.music-panel.search.result.text">
-				<span className={styles.rowTitle} title={track.title} data-flx="music.music-panel.search.result.title">
-					{track.title}
-				</span>
-				<span className={styles.artist} title={track.artist} data-flx="music.music-panel.search.result.artist">
-					{track.artist}
-					{track.durationMs > 0 ? ` · ${formatMusicTime(track.durationMs)}` : ''}
-				</span>
-			</div>
-			<IconButton
-				label="Adicionar à fila"
-				disabled={adding}
-				icon={<PlusIcon weight="bold" data-flx="music.music-panel.button.add-result.icon" />}
-				onClick={() => onAdd(track)}
-				data-flx="music.music-panel.button.add-result"
-			/>
-		</li>
-	);
-}
-
-function ResultSection({
-	title,
-	tracks,
-	onAdd,
-	adding,
-	'data-flx': dataFlx,
-}: {
-	title: string;
-	tracks: Array<MusicTrack>;
-	onAdd: (track: MusicTrack) => void;
-	adding: boolean;
-	'data-flx': string;
-}) {
-	return (
-		<div className={styles.resultSection} data-flx={dataFlx}>
-			<h3 className={styles.sectionTitle} data-flx={`${dataFlx}.title`}>
-				{title}
-			</h3>
-			{tracks.length === 0 ? (
-				<p className={styles.muted} data-flx={`${dataFlx}.empty`}>
-					Nada encontrado.
-				</p>
-			) : (
-				<ul className={styles.list} data-flx={`${dataFlx}.list`}>
-					{tracks.map((track) => (
-						<ResultRow
-							key={`${track.source}:${track.sourceId}`}
-							track={track}
-							onAdd={onAdd}
-							adding={adding}
-							data-flx="music.music-panel.result-section.result-row"
-						/>
-					))}
-				</ul>
-			)}
-		</div>
-	);
-}
-
-const MusicSearch = observer(function MusicSearch({
-	guildId,
-	channelId,
-	run,
-	pending,
-	hasSession,
-}: {
-	guildId: string;
-	channelId: string;
-	run: RunCommand;
-	pending: boolean;
-	hasSession: boolean;
-}) {
-	const text = MusicStore.searchText;
-	const setText = MusicStore.setSearchText;
-	const [status, setStatus] = useState<SearchStatus>({kind: 'idle'});
-	const requestSeq = useRef(0);
-
-	const search = useCallback(
-		(query: string) => {
-			const seq = ++requestSeq.current;
-			setStatus({kind: 'loading'});
-			searchTracks(guildId, channelId, query).then(
-				(result) => {
-					if (seq === requestSeq.current) setStatus({kind: 'done', result});
-				},
-				(error: unknown) => {
-					if (seq === requestSeq.current) setStatus({kind: 'error', message: MusicStore.describeMusicError(error)});
-				},
-			);
-		},
-		[guildId, channelId],
-	);
-	const clear = useCallback(() => {
-		requestSeq.current++;
-		setStatus({kind: 'idle'});
-	}, []);
-	const searchRef = useRef(search);
-	searchRef.current = search;
-	const input = useMemo(
-		() => createMusicSearchInput({onSearch: (query) => searchRef.current(query), onClear: clear}),
-		[clear],
-	);
-	useEffect(() => () => input.dispose(), [input]);
-	// The panel remounts when the call is expanded or collapsed: redo the kept search.
-	useEffect(() => {
-		input.submit(MusicStore.searchText);
-	}, [input]);
-
-	const add = useCallback(
-		(payload: Parameters<typeof addToQueue>[2]) => run(() => addToQueue(guildId, channelId, payload)),
-		[guildId, channelId, run],
-	);
-
-	const handleKeyDown = useCallback(
-		(event: React.KeyboardEvent<HTMLInputElement>) => {
-			if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
-			event.preventDefault();
-			if (pending || input.submit(text) !== 'link') return;
-			void add({input: text.trim()}).then((ok) => {
-				if (ok) {
-					setText('');
-					clear();
-				}
-			});
-		},
-		[add, pending, clear, input, text, setText],
-	);
-
-	const handleAddTrack = useCallback(
-		(track: MusicTrack) => void add({track: {source: track.source, sourceId: track.sourceId}}),
-		[add],
-	);
-
-	return (
-		<section className={styles.section} data-flx="music.music-panel.search">
-			<Input
-				value={text}
-				placeholder="Buscar ou colar link"
-				aria-label="Buscar ou colar link"
-				leftIcon={<MagnifyingGlassIcon weight="bold" data-flx="music.music-panel.search.icon" />}
-				onChange={(event) => {
-					setText(event.target.value);
-					input.change(event.target.value);
-				}}
-				onKeyDown={handleKeyDown}
-				data-flx="music.music-panel.search.input"
-			/>
-			{!hasSession && status.kind === 'idle' && (
-				<p className={styles.muted} data-flx="music.music-panel.search.start-hint">
-					Adicione uma música para começar
-				</p>
-			)}
-			{status.kind === 'loading' && (
-				<p className={styles.muted} data-flx="music.music-panel.search.loading">
-					Buscando…
-				</p>
-			)}
-			{status.kind === 'error' && (
-				<p className={styles.error} role="alert" data-flx="music.music-panel.search.error">
-					{status.message}
-				</p>
-			)}
-			{status.kind === 'done' && (
-				<div className={styles.results} data-flx="music.music-panel.search.results">
-					<ResultSection
-						title="YouTube"
-						tracks={status.result.youtube}
-						onAdd={handleAddTrack}
-						adding={pending}
-						data-flx="music.music-panel.search.results.youtube"
-					/>
-					{status.result.spotify && (
-						<ResultSection
-							title="Spotify"
-							tracks={status.result.spotify}
-							onAdd={handleAddTrack}
-							adding={pending}
-							data-flx="music.music-panel.search.results.spotify"
-						/>
-					)}
-				</div>
-			)}
-		</section>
-	);
-});
-
 interface QueueDragItem {
 	id: string;
 	index: number;
@@ -692,16 +484,7 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 						<NowPlaying session={session} run={run} pending={pending} data-flx="music.music-panel.now-playing" />
 					)}
 					{session && <MyVolume data-flx="music.music-panel.my-volume" />}
-					{guildId && (
-						<MusicSearch
-							guildId={guildId}
-							channelId={channelId}
-							run={run}
-							pending={pending}
-							hasSession={session != null}
-							data-flx="music.music-panel.music-search"
-						/>
-					)}
+					{guildId && <MusicSearchTab session={session} channel={channel} run={run} pending={pending} />}
 					{error && (
 						<p className={styles.error} role="alert" data-flx="music.music-panel.error">
 							{error}
