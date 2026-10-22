@@ -86,6 +86,46 @@ describe('parseSessionState queue', () => {
 	});
 });
 
+const OLD_SESSION = {channelId: 'c1', nowPlaying: null, paused: false, positionMs: 0, positionAt: 0, upNext: []};
+
+describe('spotify_radio and guild session peek', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('parseSessionState reads spotify_radio', () => {
+		expect(parseSessionState(rawState({spotify_radio: true}))?.spotifyRadio).toBe(true);
+		expect(parseSessionState(rawState())?.spotifyRadio).toBe(false);
+		expect(parseSessionState(rawState({spotify_radio: 'yes'}))?.spotifyRadio).toBe(false);
+	});
+
+	it('listGuildSessions parses the peek and skips invalid up_next items', async () => {
+		respondWith({
+			sessions: [
+				{
+					channel_id: 'c1',
+					now_playing: QUEUE_ITEM,
+					paused: true,
+					position_ms: 1500,
+					position_at: 1700000000000,
+					up_next: [QUEUE_ITEM, {id: 5}, {...QUEUE_ITEM, id: 'q2', recommended: true}],
+				},
+			],
+		});
+		const [session] = await listGuildSessions('g1');
+		expect(session?.upNext).toHaveLength(2);
+		expect(session?.upNext[1]?.recommended).toBe(true);
+		expect(session?.paused).toBe(true);
+		expect(session?.positionMs).toBe(1500);
+		expect(session?.positionAt).toBe(1700000000000);
+	});
+
+	it('listGuildSessions tolerates an old server without the peek fields', async () => {
+		respondWith({sessions: [{channel_id: 'c1', now_playing: null, up_next: 'junk'}]});
+		await expect(listGuildSessions('g1')).resolves.toEqual([OLD_SESSION]);
+	});
+});
+
 describe('array guards', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();
@@ -108,7 +148,7 @@ describe('array guards', () => {
 		respondWith(null);
 		await expect(listGuildSessions('g1')).rejects.toBeInstanceOf(MusicApiError);
 		respondWith({sessions: [{channel_id: 'c1', now_playing: null}, 'junk']});
-		await expect(listGuildSessions('g1')).resolves.toEqual([{channelId: 'c1', nowPlaying: null}]);
+		await expect(listGuildSessions('g1')).resolves.toEqual([OLD_SESSION]);
 	});
 });
 
@@ -143,7 +183,7 @@ describe('MusicStore.refreshGuildSessions', () => {
 		await MusicStore.refreshGuildSessions('g1');
 		respondWith({sessions: 'garbage'});
 		await MusicStore.refreshGuildSessions('g1');
-		expect(MusicStore.guildSessions.get('g1')).toEqual([{channelId: 'c1', nowPlaying: null}]);
+		expect(MusicStore.guildSessions.get('g1')).toEqual([OLD_SESSION]);
 	});
 
 	it('drops the list when the service says not found', async () => {

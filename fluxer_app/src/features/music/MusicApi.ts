@@ -40,12 +40,20 @@ export interface MusicSessionState {
 	/** Total queue length on the server; at least queue.length. */
 	queueLength: number;
 	notice: string | null;
+	/** The server is playing Spotify's own radio after the queue: nothing is pre-fetched. */
+	spotifyRadio: boolean;
 	revision: number;
 }
 
 export interface MusicGuildSession {
 	channelId: string;
 	nowPlaying: MusicQueueItem | null;
+	paused: boolean;
+	positionMs: number;
+	/** Unix ms at which positionMs was measured. */
+	positionAt: number;
+	/** The next few queue items (the server sends at most 3). */
+	upNext: Array<MusicQueueItem>;
 }
 
 export interface MusicSearchResult {
@@ -146,6 +154,7 @@ export function parseSessionState(json: unknown): MusicSessionState | null {
 				? Math.max(json.queue_length, items.length)
 				: items.length,
 		notice: typeof json.notice === 'string' ? json.notice : null,
+		spotifyRadio: json.spotify_radio === true,
 		revision,
 	};
 }
@@ -296,6 +305,12 @@ export async function listGuildSessions(guildId: string): Promise<Array<MusicGui
 		result.push({
 			channelId: entry.channel_id,
 			nowPlaying: entry.now_playing == null ? null : parseQueueItem(entry.now_playing),
+			paused: entry.paused === true,
+			positionMs: typeof entry.position_ms === 'number' && Number.isFinite(entry.position_ms) ? entry.position_ms : 0,
+			positionAt: typeof entry.position_at === 'number' && Number.isFinite(entry.position_at) ? entry.position_at : 0,
+			upNext: Array.isArray(entry.up_next)
+				? entry.up_next.map(parseQueueItem).filter((item): item is MusicQueueItem => item !== null)
+				: [],
 		});
 	}
 	return result;

@@ -30,6 +30,7 @@ function makeState(overrides: Partial<MusicSessionState> = {}): MusicSessionStat
 		queue: [],
 		queueLength: 0,
 		notice: null,
+		spotifyRadio: false,
 		revision: 5,
 		...overrides,
 	};
@@ -159,7 +160,9 @@ describe('MusicStore', () => {
 	});
 
 	it('logout clears the community sessions', () => {
-		MusicStore.guildSessions.set('g1', [{channelId: 'c1', nowPlaying: null}]);
+		MusicStore.guildSessions.set('g1', [
+			{channelId: 'c1', nowPlaying: null, paused: false, positionMs: 0, positionAt: 0, upNext: []},
+		]);
 		MusicStore.handleLogout();
 		expect(MusicStore.guildSessions.size).toBe(0);
 	});
