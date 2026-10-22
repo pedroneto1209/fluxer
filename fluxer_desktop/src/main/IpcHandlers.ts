@@ -423,6 +423,7 @@ export function registerIpcHandlers(): void {
 		}
 	});
 	ipcMain.handle('music:capture-spotify-redirect', async (event): Promise<string | null> => {
+		requirePrivilegedRendererDocumentSender(event, 'music:capture-spotify-redirect');
 		const win = BrowserWindow.fromWebContents(event.sender);
 		if (!win || win.isDestroyed() || win !== getMainWindow()) return null;
 		const previous = activeSpotifyCapture;

@@ -106,7 +106,8 @@ export function captureRedirect(options: {port?: number; path?: string; timeoutM
 		return close();
 	}
 
-	server.once('error', () => {
+	// 'on', not 'once': a later error (e.g. while closing) must not go unhandled; finish is idempotent.
+	server.on('error', () => {
 		markListening();
 		void finish(null);
 	});
