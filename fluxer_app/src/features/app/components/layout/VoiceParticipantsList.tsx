@@ -6,6 +6,7 @@ import styles from '@app/features/app/components/layout/VoiceParticipantsList.mo
 import type {Channel} from '@app/features/channel/models/Channel';
 import type {VoiceState} from '@app/features/gateway/types/GatewayVoiceTypes';
 import type {Guild} from '@app/features/guild/models/Guild';
+import {MusicSidebarRow} from '@app/features/music/MusicSidebarRow';
 import Users from '@app/features/user/state/Users';
 import {resolveVoiceParticipantDisplayState} from '@app/features/voice/components/VoiceParticipantDisplayState';
 import {
@@ -117,6 +118,7 @@ export const VoiceParticipantsList = observer(({guild, channel}: {guild: Guild; 
 					/>
 				);
 			})}
+			<MusicSidebarRow guildId={guild.id} channel={channel} data-flx="app.voice-participants-list.music-sidebar-row" />
 		</div>
 	);
 });

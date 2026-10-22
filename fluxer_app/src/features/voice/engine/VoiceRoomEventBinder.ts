@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {isMusicIdentity} from '@app/features/music/MusicIdentity';
 import {SoundType} from '@app/features/notification/utils/SoundUtils';
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import * as SoundCommands from '@app/features/ui/commands/SoundCommands';
@@ -394,7 +395,7 @@ export function bindRoomEvents(
 		guard(attemptId, (p: Participant) => {
 			bindParticipantSpeakingEvents(p);
 			dependencies.participants.upsertParticipant(p);
-			if (!p.identity.startsWith('user_')) {
+			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity)) {
 				SoundCommands.playSound(SoundType.ViewerJoin);
 			}
 		}),
@@ -407,7 +408,7 @@ export function bindRoomEvents(
 			dependencies.participants.removeParticipant(p.identity);
 			if (dependencies.connection.isDisconnecting()) return;
 			if (p.identity === room.localParticipant?.identity) return;
-			if (!p.identity.startsWith('user_')) {
+			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity)) {
 				SoundCommands.playSound(SoundType.ViewerLeave);
 			}
 		}),

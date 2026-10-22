@@ -62,6 +62,7 @@ import {
 	requirePrivilegedRendererDocumentSender,
 } from '@electron/main/PrivilegedRendererDocuments';
 import {getDesktopSelectedInstanceClient} from '@electron/main/SelectedInstanceFetch';
+import {captureRedirect, type RedirectCapture} from '@electron/main/SpotifyRedirectCapture';
 import {getStreamerModeCaptureAppStatus} from '@electron/main/StreamerModeProcessDetection';
 import {
 	acquireStreamingPriority,
@@ -205,6 +206,10 @@ function shakeWindow(win: BrowserWindow): void {
 		}, index * SHAKE_STEP_MS);
 	});
 }
+
+// Channel music: at most one Spotify redirect capture at a time; a new request
+// replaces the pending one (its caller gets null).
+let activeSpotifyCapture: RedirectCapture | null = null;
 
 export function registerIpcHandlers(): void {
 	registerVoiceDebugEventSinkPopoutIpcHandlers();
@@ -416,6 +421,19 @@ export function registerIpcHandlers(): void {
 		if (shake && !win.isMaximized() && !win.isFullScreen()) {
 			shakeWindow(win);
 		}
+	});
+	ipcMain.handle('music:capture-spotify-redirect', async (event): Promise<string | null> => {
+		requirePrivilegedRendererDocumentSender(event, 'music:capture-spotify-redirect');
+		const win = BrowserWindow.fromWebContents(event.sender);
+		if (!win || win.isDestroyed() || win !== getMainWindow()) return null;
+		const previous = activeSpotifyCapture;
+		activeSpotifyCapture = null;
+		if (previous) await previous.cancel();
+		const capture = captureRedirect();
+		activeSpotifyCapture = capture;
+		const url = await capture.result;
+		if (activeSpotifyCapture === capture) activeSpotifyCapture = null;
+		return url;
 	});
 	ipcMain.handle('theme-studio-popout-focus', (): boolean => {
 		return focusThemeStudioPopoutWindow();

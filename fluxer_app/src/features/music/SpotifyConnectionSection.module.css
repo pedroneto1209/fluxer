@@ -1,0 +1,67 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-3);
+}
+
+.statusRow {
+	align-items: center;
+	background-color: var(--background-textarea);
+	border: 0.0625rem solid var(--background-modifier-accent);
+	border-radius: var(--radius-xl);
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-3);
+	justify-content: space-between;
+	padding: var(--spacing-3);
+}
+
+.status {
+	color: var(--text-primary);
+	font-weight: 600;
+}
+
+.statusMuted {
+	color: var(--text-secondary);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-2);
+}
+
+.message {
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	margin: 0;
+}
+
+.link {
+	color: var(--text-link);
+}
+
+.pasteRow {
+	align-items: flex-end;
+	display: flex;
+	gap: var(--spacing-2);
+}
+
+.pasteInput {
+	flex: 1;
+	min-width: 0;
+}
+
+.error {
+	color: var(--status-danger);
+	font-size: 0.875rem;
+	margin: 0;
+}
+
+.notes {
+	color: var(--text-tertiary);
+	font-size: 0.75rem;
+	margin: 0;
+}
