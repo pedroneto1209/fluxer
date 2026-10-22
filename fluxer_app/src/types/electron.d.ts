@@ -362,7 +362,8 @@ export interface ElectronAPI {
 	windowMaximize?(): void;
 	windowClose?(): void;
 	windowBringToFront?(options?: {shake?: boolean}): void;
-	captureSpotifyRedirect?(): Promise<string | null>;
+	captureSpotifyRedirect?(state: string): Promise<string | null>;
+	cancelSpotifyRedirect?(): Promise<void>;
 	passkeyIsSupported?(): Promise<boolean>;
 	passkeyRegister?(
 		options: unknown,

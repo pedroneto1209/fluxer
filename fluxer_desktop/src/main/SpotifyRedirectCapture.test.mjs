@@ -55,6 +55,21 @@ describe('matchRedirectRequest', () => {
 		assert.equal(matchRedirectRequest('GET', '//evil.example/login', 36850, '/login'), null);
 	});
 
+	test('with an expected state, only accepts the redirect carrying that state', () => {
+		assert.equal(
+			matchRedirectRequest('GET', '/login?code=a&state=s1', 36850, '/login', 's1'),
+			'http://127.0.0.1:36850/login?code=a&state=s1',
+		);
+		assert.equal(
+			matchRedirectRequest('GET', '/login?error=access_denied&state=s1', 36850, '/login', 's1'),
+			'http://127.0.0.1:36850/login?error=access_denied&state=s1',
+		);
+		assert.equal(matchRedirectRequest('GET', '/login?code=a&state=other', 36850, '/login', 's1'), null);
+		assert.equal(matchRedirectRequest('GET', '/login?code=a', 36850, '/login', 's1'), null);
+		assert.equal(matchRedirectRequest('GET', '/login', 36850, '/login', 's1'), null);
+		assert.equal(matchRedirectRequest('GET', '/login?code=a&state=s1&state=s2', 36850, '/login', 's1'), null);
+	});
+
 	test('is bound to the registered Spotify redirect', () => {
 		assert.equal(SPOTIFY_REDIRECT_PORT, 36850);
 		assert.equal(SPOTIFY_REDIRECT_PATH, '/login');
@@ -74,6 +89,17 @@ describe('captureRedirect', () => {
 		assert.match(response.body, /Pronto! Pode voltar ao Fluxer\./);
 		assert.equal(await capture.result, `http://127.0.0.1:${port}/login?code=a&state=b`);
 		await assert.rejects(get(port, '/login?code=c&state=d'));
+	});
+
+	test('ignores a redirect with another state and keeps waiting', async () => {
+		const port = await freePort();
+		const capture = captureRedirect({port, path: '/login', timeoutMs: 10_000, expectedState: 's1'});
+		await capture.listening;
+		const stray = await get(port, '/login?code=x&state=forged');
+		assert.equal(stray.status, 404);
+		const response = await get(port, '/login?code=a&state=s1');
+		assert.equal(response.status, 200);
+		assert.equal(await capture.result, `http://127.0.0.1:${port}/login?code=a&state=s1`);
 	});
 
 	test('resolves null when the port is busy', async () => {

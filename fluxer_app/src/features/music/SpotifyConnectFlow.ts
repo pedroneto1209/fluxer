@@ -8,9 +8,9 @@
 import type {SpotifyStatus} from '@app/features/music/MusicApi';
 
 export interface SpotifyConnectDeps {
-	startAuthorize: () => Promise<{url: string}>;
-	/** Desktop loopback capture; null outside the desktop app. */
-	capture: (() => Promise<string | null>) | null;
+	startAuthorize: () => Promise<{url: string; state: string}>;
+	/** Desktop loopback capture of the redirect carrying `state`; null outside the desktop app. */
+	capture: ((state: string) => Promise<string | null>) | null;
 	openUrl: (url: string) => void | Promise<void>;
 	connect: (redirectUrl: string) => Promise<SpotifyStatus>;
 	onAuthorizeUrl?: (url: string) => void;
@@ -19,9 +19,9 @@ export interface SpotifyConnectDeps {
 export type SpotifyConnectOutcome = {kind: 'connected'; status: SpotifyStatus} | {kind: 'paste'; authorizeUrl: string};
 
 export async function runSpotifyConnect(deps: SpotifyConnectDeps): Promise<SpotifyConnectOutcome> {
-	const {url} = await deps.startAuthorize();
+	const {url, state} = await deps.startAuthorize();
 	// Listen before the browser opens so a fast redirect is not missed.
-	const captured = deps.capture ? deps.capture().catch(() => null) : Promise.resolve(null);
+	const captured = deps.capture ? deps.capture(state).catch(() => null) : Promise.resolve(null);
 	deps.onAuthorizeUrl?.(url);
 	try {
 		await deps.openUrl(url);

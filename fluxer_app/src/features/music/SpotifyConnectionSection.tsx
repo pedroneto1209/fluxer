@@ -26,7 +26,13 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 
 type Phase = 'idle' | 'starting' | 'waiting' | 'paste';
 
-export const SpotifyConnectionSection: React.FC = observer(() => {
+function cancelDesktopCapture(): void {
+	void getElectronAPI()
+		?.cancelSpotifyRedirect?.()
+		.catch(() => {});
+}
+
+export const SpotifyConnectionSection: React.FC<{'data-flx'?: string}> = observer(({'data-flx': dataFlx}) => {
 	const available = MusicStore.availability === 'available';
 	const [status, setStatus] = useState<SpotifyStatus | null>(null);
 	const [phase, setPhase] = useState<Phase>('idle');
@@ -39,6 +45,8 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 
 	useEffect(() => {
 		void MusicStore.checkAvailability();
+		// Leaving the settings frees the desktop app's redirect port right away.
+		return () => cancelDesktopCapture();
 	}, []);
 
 	const refreshStatus = useCallback(async () => {
@@ -74,7 +82,7 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 		try {
 			const outcome = await runSpotifyConnect({
 				startAuthorize: startSpotifyAuthorize,
-				capture: capture ? () => capture() : null,
+				capture: capture ? (state) => capture(state) : null,
 				openUrl: (url) => openExternalUrl(url),
 				connect: async (redirectUrl) => {
 					if (!isCurrent()) throw new Error('stale');
@@ -109,6 +117,7 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 			const next = await connectSpotify({redirectUrl});
 			// A paste wins over a capture still waiting in the desktop app.
 			attemptRef.current = attempt + 1;
+			cancelDesktopCapture();
 			finishConnected(next);
 		} catch (connectError) {
 			setError(MusicStore.describeMusicError(connectError));
@@ -151,7 +160,7 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 			linkable={false}
 			title="Spotify (música do canal)"
 			description="Conecte sua conta do Spotify para tocar músicas do Spotify nos canais de voz."
-			data-flx="music.spotify-connection.section"
+			data-flx={dataFlx ?? 'music.spotify-connection.section'}
 		>
 			<div className={styles.body} data-flx="music.spotify-connection.body">
 				<div className={styles.statusRow} data-flx="music.spotify-connection.status-row">

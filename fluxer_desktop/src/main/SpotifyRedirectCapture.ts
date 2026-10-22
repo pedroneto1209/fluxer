@@ -3,8 +3,9 @@
 // One-shot loopback server that catches the Spotify OAuth redirect for the
 // channel-music feature. The redirect URI registered with Spotify is fixed at
 // http://127.0.0.1:36850/login, so the server listens only there, hands back the
-// full URL of the first GET on that path and closes. The music service validates
-// the URL (state, code), so nothing here interprets it.
+// full URL of the first GET on that path carrying the expected OAuth state and
+// closes. Anything else on the port (another state, other paths) gets a 404 and the
+// capture keeps waiting. The music service validates the URL (state, code) again.
 
 import http from 'node:http';
 
@@ -22,18 +23,26 @@ const DONE_PAGE = `<!doctype html>
 </html>
 `;
 
-/** Full redirect URL when the request is a GET on the redirect path, else null. */
+/**
+ * Full redirect URL when the request is a GET on the redirect path (and, when
+ * expectedState is given, its single `state` query parameter equals it), else null.
+ */
 export function matchRedirectRequest(
 	method: string | undefined,
 	requestUrl: string | undefined,
 	port: number,
 	expectedPath: string,
+	expectedState?: string,
 ): string | null {
 	if (method !== 'GET' || typeof requestUrl !== 'string') return null;
 	if (!requestUrl.startsWith('/') || requestUrl.startsWith('//')) return null;
 	const queryStart = requestUrl.indexOf('?');
 	const pathname = queryStart === -1 ? requestUrl : requestUrl.slice(0, queryStart);
 	if (pathname !== expectedPath) return null;
+	if (expectedState !== undefined) {
+		const states = new URLSearchParams(queryStart === -1 ? '' : requestUrl.slice(queryStart + 1)).getAll('state');
+		if (states.length !== 1 || states[0] !== expectedState) return null;
+	}
 	return `http://${SPOTIFY_REDIRECT_HOST}:${port}${requestUrl}`;
 }
 
@@ -46,7 +55,9 @@ export interface RedirectCapture {
 	cancel: () => Promise<void>;
 }
 
-export function captureRedirect(options: {port?: number; path?: string; timeoutMs?: number} = {}): RedirectCapture {
+export function captureRedirect(
+	options: {port?: number; path?: string; timeoutMs?: number; expectedState?: string} = {},
+): RedirectCapture {
 	const port = options.port ?? SPOTIFY_REDIRECT_PORT;
 	const path = options.path ?? SPOTIFY_REDIRECT_PATH;
 	const timeoutMs = options.timeoutMs ?? SPOTIFY_REDIRECT_TIMEOUT_MS;
@@ -65,7 +76,7 @@ export function captureRedirect(options: {port?: number; path?: string; timeoutM
 	let closed: Promise<void> | null = null;
 
 	const server = http.createServer((request, response) => {
-		const url = finished ? null : matchRedirectRequest(request.method, request.url, port, path);
+		const url = finished ? null : matchRedirectRequest(request.method, request.url, port, path, options.expectedState);
 		if (url === null) {
 			response.writeHead(404, {'Content-Type': 'text/plain; charset=utf-8', Connection: 'close'});
 			response.end('Not found');

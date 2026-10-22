@@ -422,18 +422,27 @@ export function registerIpcHandlers(): void {
 			shakeWindow(win);
 		}
 	});
-	ipcMain.handle('music:capture-spotify-redirect', async (event): Promise<string | null> => {
+	ipcMain.handle('music:capture-spotify-redirect', async (event, state: unknown): Promise<string | null> => {
 		requirePrivilegedRendererDocumentSender(event, 'music:capture-spotify-redirect');
 		const win = BrowserWindow.fromWebContents(event.sender);
 		if (!win || win.isDestroyed() || win !== getMainWindow()) return null;
+		// The OAuth state of this attempt: redirects carrying another one are ignored.
+		if (typeof state !== 'string' || state.length === 0 || state.length > 512) return null;
 		const previous = activeSpotifyCapture;
 		activeSpotifyCapture = null;
 		if (previous) await previous.cancel();
-		const capture = captureRedirect();
+		const capture = captureRedirect({expectedState: state});
 		activeSpotifyCapture = capture;
 		const url = await capture.result;
 		if (activeSpotifyCapture === capture) activeSpotifyCapture = null;
 		return url;
+	});
+	// The renderer no longer needs the capture (pasted address, settings closed): free the port.
+	ipcMain.handle('music:cancel-spotify-redirect', async (event): Promise<void> => {
+		requirePrivilegedRendererDocumentSender(event, 'music:cancel-spotify-redirect');
+		const capture = activeSpotifyCapture;
+		activeSpotifyCapture = null;
+		if (capture) await capture.cancel();
 	});
 	ipcMain.handle('theme-studio-popout-focus', (): boolean => {
 		return focusThemeStudioPopoutWindow();

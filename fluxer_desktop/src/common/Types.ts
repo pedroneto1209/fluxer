@@ -273,7 +273,8 @@ export interface ElectronAPI {
 	windowClose: () => void;
 	windowIsMaximized: () => Promise<boolean>;
 	windowBringToFront: (options?: {shake?: boolean}) => void;
-	captureSpotifyRedirect: () => Promise<string | null>;
+	captureSpotifyRedirect: (state: string) => Promise<string | null>;
+	cancelSpotifyRedirect: () => Promise<void>;
 	focusThemeStudioPopout: () => Promise<boolean>;
 
 	popoutSetAlwaysOnTop: (key: string, flag: boolean) => Promise<boolean>;

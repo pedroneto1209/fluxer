@@ -467,7 +467,9 @@ const api: ElectronAPI = {
 	windowBringToFront: (options?: {shake?: boolean}): void => {
 		ipcRenderer.send('window-bring-to-front', {shake: options?.shake === true});
 	},
-	captureSpotifyRedirect: (): Promise<string | null> => ipcRenderer.invoke('music:capture-spotify-redirect'),
+	captureSpotifyRedirect: (state: string): Promise<string | null> =>
+		ipcRenderer.invoke('music:capture-spotify-redirect', state),
+	cancelSpotifyRedirect: (): Promise<void> => ipcRenderer.invoke('music:cancel-spotify-redirect'),
 	focusThemeStudioPopout: (): Promise<boolean> => ipcRenderer.invoke('theme-studio-popout-focus'),
 
 	popoutSetAlwaysOnTop: (key: string, flag: boolean): Promise<boolean> =>

@@ -13,9 +13,9 @@ describe('runSpotifyConnect', () => {
 		const connect = vi.fn(async () => status);
 		const onAuthorizeUrl = vi.fn();
 		const outcome = await runSpotifyConnect({
-			startAuthorize: async () => ({url: AUTHORIZE_URL}),
-			capture: async () => {
-				order.push('capture');
+			startAuthorize: async () => ({url: AUTHORIZE_URL, state: 's'}),
+			capture: async (state) => {
+				order.push(`capture ${state}`);
 				return REDIRECT_URL;
 			},
 			openUrl: (url) => {
@@ -24,7 +24,7 @@ describe('runSpotifyConnect', () => {
 			connect,
 			onAuthorizeUrl,
 		});
-		expect(order).toEqual(['capture', `open ${AUTHORIZE_URL}`]);
+		expect(order).toEqual(['capture s', `open ${AUTHORIZE_URL}`]);
 		expect(onAuthorizeUrl).toHaveBeenCalledWith(AUTHORIZE_URL);
 		expect(connect).toHaveBeenCalledWith(REDIRECT_URL);
 		expect(outcome).toEqual({kind: 'connected', status});
@@ -34,7 +34,7 @@ describe('runSpotifyConnect', () => {
 		const connect = vi.fn();
 		const openUrl = vi.fn();
 		const outcome = await runSpotifyConnect({
-			startAuthorize: async () => ({url: AUTHORIZE_URL}),
+			startAuthorize: async () => ({url: AUTHORIZE_URL, state: 's'}),
 			capture: null,
 			openUrl,
 			connect,
@@ -48,7 +48,7 @@ describe('runSpotifyConnect', () => {
 		for (const capture of [async () => null, async () => Promise.reject(new Error('ipc'))]) {
 			const connect = vi.fn();
 			const outcome = await runSpotifyConnect({
-				startAuthorize: async () => ({url: AUTHORIZE_URL}),
+				startAuthorize: async () => ({url: AUTHORIZE_URL, state: 's'}),
 				capture,
 				openUrl: () => {},
 				connect,
@@ -69,7 +69,7 @@ describe('runSpotifyConnect', () => {
 		).rejects.toThrow('down');
 		await expect(
 			runSpotifyConnect({
-				startAuthorize: async () => ({url: AUTHORIZE_URL}),
+				startAuthorize: async () => ({url: AUTHORIZE_URL, state: 's'}),
 				capture: async () => REDIRECT_URL,
 				openUrl: () => {},
 				connect: async () => Promise.reject(new Error('INVALID_STATE')),
@@ -80,7 +80,7 @@ describe('runSpotifyConnect', () => {
 	it('still waits for the capture when opening the browser fails', async () => {
 		const connect = vi.fn(async () => ({connected: true, displayName: 'x'}));
 		const outcome = await runSpotifyConnect({
-			startAuthorize: async () => ({url: AUTHORIZE_URL}),
+			startAuthorize: async () => ({url: AUTHORIZE_URL, state: 's'}),
 			capture: async () => REDIRECT_URL,
 			openUrl: async () => Promise.reject(new Error('no browser')),
 			connect,
