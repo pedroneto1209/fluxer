@@ -1,0 +1,140 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.miniPlayer {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	min-width: 0;
+	margin: 0 var(--spacing-2) var(--spacing-2);
+	padding: var(--spacing-2);
+	border-radius: var(--radius-lg);
+	background-color: var(--background-tertiary);
+}
+
+.trackButton {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	min-width: 0;
+	width: 100%;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.trackText {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.title,
+.artist {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.title {
+	color: var(--text-primary);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.artist {
+	color: var(--text-primary-muted);
+	font-size: 0.75rem;
+}
+
+.progressBar {
+	position: relative;
+	height: 0.1875rem;
+	overflow: hidden;
+	border-radius: 999px;
+	background-color: var(--background-modifier-accent);
+}
+
+.progressFill {
+	height: 100%;
+	border-radius: inherit;
+	background-color: var(--text-primary);
+	transition: width 1s linear;
+}
+
+/* duration 0 = unknown: a moving stripe instead of a fill. */
+.progressIndeterminate::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 30%;
+	border-radius: inherit;
+	background-color: var(--text-primary);
+	animation: miniIndeterminate 1.6s ease-in-out infinite;
+}
+
+@keyframes miniIndeterminate {
+	from {
+		left: -30%;
+	}
+	to {
+		left: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.progressIndeterminate::after {
+		left: 0;
+		width: 100%;
+		opacity: 0.4;
+		animation: none;
+	}
+
+	.progressFill {
+		transition: none;
+	}
+}
+
+.controls {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-1);
+	min-width: 0;
+}
+
+.volume {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	justify-content: flex-end;
+	min-width: 0;
+}
+
+.volumeSlider {
+	flex: 0 1 3.5rem;
+	min-width: 2rem;
+	accent-color: var(--brand-primary);
+}
+
+.idleButton {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: var(--spacing-1) var(--spacing-2);
+	border: none;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--text-primary-muted);
+	font-size: 0.8125rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.idleButton:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-primary);
+}

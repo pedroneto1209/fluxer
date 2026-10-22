@@ -13,6 +13,7 @@ import {useContextMenuHoverState} from '@app/features/app/hooks/useContextMenuHo
 import * as VoiceStateCommands from '@app/features/devtools/commands/VoiceStateCommands';
 import Keybind from '@app/features/input/state/InputKeybind';
 import {getPushToTalkHoldLabel} from '@app/features/input/utils/PushToTalkHint';
+import {MusicMiniPlayer} from '@app/features/music/MusicMiniPlayer';
 import Presence from '@app/features/presence/state/Presence';
 import {SettingsContextMenu} from '@app/features/ui/action_menu/SettingsContextMenu';
 import * as ContextMenuCommands from '@app/features/ui/commands/ContextMenuCommands';
@@ -250,6 +251,7 @@ const UserAreaInner = observer(
 				aria-label={i18n._(USER_CONTROLS_DESCRIPTOR)}
 				data-flx="app.user-area.user-area-inner.section"
 			>
+				{hasVoiceConnection && <MusicMiniPlayer />}
 				{hasVoiceConnection && (
 					<div ref={voiceConnectionRef} data-flx="app.user-area.user-area-inner.div">
 						<div
