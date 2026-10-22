@@ -13,6 +13,7 @@ import {
 	searchTracks,
 } from '@app/features/music/MusicApi';
 import {createMusicSearchInput, formatMusicTime} from '@app/features/music/MusicPanelStateMachine';
+import {Artwork} from '@app/features/music/MusicParts';
 import {
 	loadSearchSource,
 	type MusicSearchSourceChoice,
@@ -27,7 +28,7 @@ import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Input} from '@app/features/ui/components/form/FormInput';
 import FocusRing from '@app/features/ui/focus_ring/FocusRing';
 import {Tooltip} from '@app/features/ui/tooltip/Tooltip';
-import {MagnifyingGlassIcon, MusicNoteIcon, PlusIcon} from '@phosphor-icons/react';
+import {MagnifyingGlassIcon, PlusIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import type React from 'react';
@@ -55,37 +56,10 @@ function openLinkedAccounts(): void {
 	);
 }
 
-function ResultArtwork({url}: {url: string | null}) {
-	const [failed, setFailed] = useState(false);
-	useEffect(() => setFailed(false), [url]);
-	if (!url || failed) {
-		return (
-			<div
-				className={clsx(styles.artwork, styles.artworkPlaceholder)}
-				aria-hidden="true"
-				data-flx="music.music-search-tab.result.artwork"
-			>
-				<MusicNoteIcon weight="fill" data-flx="music.music-search-tab.result.artwork.icon" />
-			</div>
-		);
-	}
-	return (
-		<img
-			className={styles.artwork}
-			src={url}
-			alt=""
-			loading="lazy"
-			referrerPolicy="no-referrer"
-			onError={() => setFailed(true)}
-			data-flx="music.music-search-tab.result.artwork"
-		/>
-	);
-}
-
 function ResultRow({track, onAdd, adding}: {track: MusicTrack; onAdd: (track: MusicTrack) => void; adding: boolean}) {
 	return (
 		<li className={styles.row} data-flx="music.music-search-tab.result">
-			<ResultArtwork url={track.artworkUrl} />
+			<Artwork url={track.artworkUrl} size="small" data-flx="music.music-search-tab.result.artwork" />
 			<div className={styles.trackText} data-flx="music.music-search-tab.result.text">
 				<span className={styles.title} title={track.title} data-flx="music.music-search-tab.result.title">
 					{track.title}

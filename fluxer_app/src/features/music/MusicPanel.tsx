@@ -4,34 +4,17 @@
 // paste a link, the queue and "Encerrar música". It sits in the channel side panel slot
 // (like the member list) or next to the call when the call fills the view.
 
-import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
 import type {Channel} from '@app/features/channel/models/Channel';
-import {
-	type MusicQueueItem,
-	type MusicSessionState,
-	type MusicSource,
-	moveInQueue,
-	previous,
-	removeFromQueue,
-	setPaused,
-	skip,
-	stopSession,
-} from '@app/features/music/MusicApi';
+import {type MusicSessionState, previous, setPaused, skip} from '@app/features/music/MusicApi';
 import styles from '@app/features/music/MusicPanel.module.css';
-import {describeMusicProgress, queueMoveIndex, queueOverflowLabel} from '@app/features/music/MusicPanelStateMachine';
+import {describeMusicProgress} from '@app/features/music/MusicPanelStateMachine';
+import {Artwork, IconButton, SourceTag} from '@app/features/music/MusicParts';
+import {MusicQueueTab} from '@app/features/music/MusicQueueTab';
 import {MusicSearchTab} from '@app/features/music/MusicSearchTab';
 import MusicStore from '@app/features/music/MusicStore';
 import MusicVolume from '@app/features/music/MusicVolume';
-import {Button} from '@app/features/ui/button/Button';
-import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
-import {modal} from '@app/features/ui/commands/ModalCommands';
-import {Avatar} from '@app/features/ui/components/Avatar';
 import {Scroller} from '@app/features/ui/components/Scroller';
-import FocusRing from '@app/features/ui/focus_ring/FocusRing';
-import {Tooltip} from '@app/features/ui/tooltip/Tooltip';
-import Users from '@app/features/user/state/Users';
 import {
-	DotsSixVerticalIcon,
 	MusicNoteIcon,
 	PauseIcon,
 	PlayIcon,
@@ -43,102 +26,9 @@ import {
 } from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
-import type React from 'react';
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {useDrag, useDrop} from 'react-dnd';
-
-const QUEUE_DRAG_TYPE = 'fluxer.music.queue-item';
-
-const SOURCE_LABEL: Record<MusicSource, string> = {spotify: 'Spotify', youtube: 'YouTube'};
+import {useEffect, useState} from 'react';
 
 type RunCommand = (command: () => Promise<MusicSessionState | null>) => Promise<boolean>;
-
-interface IconButtonProps {
-	label: string;
-	icon: React.ReactNode;
-	onClick: () => void;
-	disabled?: boolean;
-	primary?: boolean;
-	'data-flx': string;
-}
-
-function IconButton({label, icon, onClick, disabled, primary, 'data-flx': dataFlx}: IconButtonProps) {
-	return (
-		<Tooltip text={label} data-flx={`${dataFlx}.tooltip`}>
-			<FocusRing offset={-2} data-flx={`${dataFlx}.focus-ring`}>
-				<button
-					type="button"
-					className={clsx(styles.iconButton, primary && styles.iconButtonPrimary)}
-					onClick={onClick}
-					disabled={disabled}
-					aria-label={label}
-					data-flx={dataFlx}
-				>
-					{icon}
-				</button>
-			</FocusRing>
-		</Tooltip>
-	);
-}
-
-function Artwork({url, size, 'data-flx': dataFlx}: {url: string | null; size: 'large' | 'small'; 'data-flx': string}) {
-	const [failed, setFailed] = useState(false);
-	useEffect(() => setFailed(false), [url]);
-	const className = clsx(styles.artwork, size === 'large' ? styles.artworkLarge : styles.artworkSmall);
-	if (!url || failed) {
-		return (
-			<div className={clsx(className, styles.artworkPlaceholder)} aria-hidden="true" data-flx={dataFlx}>
-				<MusicNoteIcon weight="fill" data-flx={`${dataFlx}.icon`} />
-			</div>
-		);
-	}
-	return (
-		<img
-			className={className}
-			src={url}
-			alt=""
-			loading="lazy"
-			referrerPolicy="no-referrer"
-			onError={() => setFailed(true)}
-			data-flx={dataFlx}
-		/>
-	);
-}
-
-function SourceTag({
-	source,
-	recommended,
-	'data-flx': dataFlx,
-}: {
-	source: MusicSource;
-	recommended?: boolean;
-	'data-flx': string;
-}) {
-	return (
-		<span
-			className={clsx(
-				styles.tag,
-				recommended ? styles.tagRecommended : source === 'spotify' ? styles.tagSpotify : styles.tagYoutube,
-			)}
-			data-flx={dataFlx}
-		>
-			{recommended ? 'Recomendada' : SOURCE_LABEL[source]}
-		</span>
-	);
-}
-
-const AddedBy = observer(function AddedBy({userId}: {userId: string}) {
-	const user = Users.getUser(userId);
-	if (!user) return null;
-	return (
-		<span className={styles.addedBy} data-flx="music.music-panel.queue.added-by">
-			<Avatar user={user} size={16} data-flx="music.music-panel.queue.added-by.avatar" />
-			<span className={styles.addedByName} data-flx="music.music-panel.queue.added-by.name">
-				{user.displayName}
-			</span>
-		</span>
-	);
-});
 
 const NowPlaying = observer(function NowPlaying({
 	session,
@@ -276,164 +166,6 @@ const MyVolume = observer(function MyVolume() {
 	);
 });
 
-interface QueueDragItem {
-	id: string;
-	index: number;
-}
-
-function QueueRow({
-	item,
-	index,
-	session,
-	run,
-	pending,
-}: {
-	item: MusicQueueItem;
-	index: number;
-	session: MusicSessionState;
-	run: RunCommand;
-	pending: boolean;
-}) {
-	const rowRef = useRef<HTMLLIElement | null>(null);
-	const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
-	const {guildId, channelId} = session;
-
-	const [{isDragging}, dragRef] = useDrag(
-		() => ({
-			type: QUEUE_DRAG_TYPE,
-			item: (): QueueDragItem => ({id: item.id, index}),
-			collect: (monitor) => ({isDragging: monitor.isDragging()}),
-		}),
-		[item.id, index],
-	);
-	const [{isOver}, dropRef] = useDrop(
-		() => ({
-			accept: QUEUE_DRAG_TYPE,
-			hover: (dragged: QueueDragItem, monitor) => {
-				const node = rowRef.current;
-				const offset = monitor.getClientOffset();
-				if (!node || !offset || dragged.id === item.id) {
-					setDropPosition(null);
-					return;
-				}
-				const rect = node.getBoundingClientRect();
-				setDropPosition(offset.y < rect.top + rect.height / 2 ? 'before' : 'after');
-			},
-			drop: (dragged: QueueDragItem, monitor) => {
-				const node = rowRef.current;
-				const offset = monitor.getClientOffset();
-				setDropPosition(null);
-				if (!node || dragged.id === item.id) return;
-				const rect = node.getBoundingClientRect();
-				const position = offset && offset.y >= rect.top + rect.height / 2 ? 'after' : 'before';
-				const target = queueMoveIndex(dragged.index, index, position);
-				if (target != null) void run(() => moveInQueue(guildId, channelId, dragged.id, target));
-			},
-			collect: (monitor) => ({isOver: monitor.isOver({shallow: true})}),
-		}),
-		[item.id, index, guildId, channelId, run],
-	);
-	useEffect(() => {
-		if (!isOver) setDropPosition(null);
-	}, [isOver]);
-	const setRowNode = useCallback(
-		(node: HTMLLIElement | null) => {
-			rowRef.current = node;
-			dropRef(node);
-		},
-		[dropRef],
-	);
-	const setHandleNode = useCallback(
-		(node: HTMLDivElement | null) => {
-			dragRef(node);
-		},
-		[dragRef],
-	);
-
-	return (
-		<li
-			ref={setRowNode}
-			className={clsx(
-				styles.row,
-				styles.queueRow,
-				isDragging && styles.rowDragging,
-				dropPosition === 'before' && styles.dropBefore,
-				dropPosition === 'after' && styles.dropAfter,
-			)}
-			data-flx="music.music-panel.queue.item"
-		>
-			<div
-				ref={setHandleNode}
-				className={styles.dragHandle}
-				role="button"
-				tabIndex={0}
-				aria-label="Arraste para reordenar"
-				title="Arraste para reordenar"
-				data-flx="music.music-panel.queue.item.drag-handle"
-			>
-				<DotsSixVerticalIcon weight="bold" data-flx="music.music-panel.queue.item.drag-handle.icon" />
-			</div>
-			<Artwork url={item.artworkUrl} size="small" data-flx="music.music-panel.queue.item.artwork" />
-			<div className={styles.trackText} data-flx="music.music-panel.queue.item.text">
-				<span className={styles.rowTitle} title={item.title} data-flx="music.music-panel.queue.item.title">
-					{item.title}
-				</span>
-				<span className={styles.artist} title={item.artist} data-flx="music.music-panel.queue.item.artist">
-					{item.artist}
-				</span>
-				<span className={styles.meta} data-flx="music.music-panel.queue.item.meta">
-					<SourceTag source={item.source} recommended={item.recommended} data-flx="music.music-panel.queue.item.tag" />
-					{!item.recommended && item.addedBy && (
-						<AddedBy userId={item.addedBy} data-flx="music.music-panel.queue-row.added-by" />
-					)}
-				</span>
-			</div>
-			<IconButton
-				label="Remover da fila"
-				disabled={pending}
-				icon={<XIcon weight="bold" data-flx="music.music-panel.button.remove.icon" />}
-				onClick={() => void run(() => removeFromQueue(guildId, channelId, item.id))}
-				data-flx="music.music-panel.button.remove"
-			/>
-		</li>
-	);
-}
-
-function MusicQueue({session, run, pending}: {session: MusicSessionState; run: RunCommand; pending: boolean}) {
-	const overflow = queueOverflowLabel(session.queue.length, session.queueLength);
-	return (
-		<section className={styles.section} aria-label="Fila" data-flx="music.music-panel.queue">
-			<h3 className={styles.sectionTitle} data-flx="music.music-panel.queue.title">
-				Fila
-			</h3>
-			{session.queue.length === 0 ? (
-				<p className={styles.muted} data-flx="music.music-panel.queue.empty">
-					A fila está vazia.
-				</p>
-			) : (
-				<ul className={styles.list} data-flx="music.music-panel.queue.list">
-					{session.queue.map((item, index) => (
-						<QueueRow
-							key={item.id}
-							item={item}
-							index={index}
-							session={session}
-							run={run}
-							pending={pending}
-							data-flx="music.music-panel.music-queue.queue-row"
-						/>
-					))}
-				</ul>
-			)}
-			{overflow && (
-				<p className={styles.muted} data-flx="music.music-panel.queue.overflow">
-					{overflow}
-				</p>
-			)}
-		</section>
-	);
-}
-
 export const MusicPanel = observer(function MusicPanel({channel}: {channel: Channel}) {
 	const guildId = channel.guildId ?? null;
 	const channelId = channel.id;
@@ -441,28 +173,6 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 	const error = MusicStore.commandError;
 	const pending = MusicStore.commandPending;
 	const run = MusicStore.runCommand;
-
-	const handleStop = useCallback(() => {
-		if (!guildId) return;
-		ModalCommands.push(
-			modal(() => (
-				<ConfirmModal
-					title="Encerrar música"
-					description="A música para para todo mundo na chamada e a fila é apagada."
-					primaryText="Encerrar"
-					primaryVariant="danger"
-					onPrimary={async () => {
-						const ok = await run(async () => {
-							await stopSession(guildId, channelId);
-							return null;
-						});
-						if (ok) MusicStore.clearChannel(channelId);
-					}}
-					data-flx="music.music-panel.stop-confirm-modal"
-				/>
-			)),
-		);
-	}, [guildId, channelId, run]);
 
 	return (
 		<aside className={styles.panel} aria-label="Música" data-flx="music.music-panel">
@@ -495,25 +205,9 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 							{session.notice}
 						</p>
 					)}
-					{session && (
-						<MusicQueue session={session} run={run} pending={pending} data-flx="music.music-panel.music-queue" />
-					)}
+					{session && <MusicQueueTab session={session} run={run} pending={pending} />}
 				</div>
 			</Scroller>
-			{session && (
-				<footer className={styles.footer} data-flx="music.music-panel.footer">
-					<Button
-						variant="danger"
-						small
-						fitContainer
-						disabled={pending}
-						onClick={handleStop}
-						data-flx="music.music-panel.button.stop"
-					>
-						Encerrar música
-					</Button>
-				</footer>
-			)}
 		</aside>
 	);
 });

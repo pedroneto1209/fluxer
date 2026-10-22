@@ -56,23 +56,6 @@
 	background-color: var(--background-modifier-hover);
 }
 
-.artwork {
-	flex: 0 0 auto;
-	width: 2.5rem;
-	height: 2.5rem;
-	object-fit: cover;
-	border-radius: var(--radius-md);
-	background-color: var(--background-tertiary);
-}
-
-.artworkPlaceholder {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: var(--text-primary-muted);
-	font-size: 1.25rem;
-}
-
 .trackText {
 	display: flex;
 	flex: 1 1 auto;

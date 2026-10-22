@@ -1,0 +1,136 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-3);
+	min-width: 0;
+}
+
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	min-width: 0;
+}
+
+.sectionTitle {
+	margin: 0;
+	color: var(--text-primary-muted);
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	min-width: 0;
+	padding: var(--spacing-1);
+	border-top: 0.125rem solid transparent;
+	border-bottom: 0.125rem solid transparent;
+	border-radius: var(--radius-md);
+}
+
+.row:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.rowRecommended {
+	opacity: 0.6;
+}
+
+.rowRecommended:hover {
+	opacity: 1;
+}
+
+.rowDragging {
+	opacity: 0.4;
+}
+
+.dropBefore {
+	border-top-color: var(--brand-primary);
+}
+
+.dropAfter {
+	border-bottom-color: var(--brand-primary);
+}
+
+.dragHandle {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	color: var(--text-tertiary);
+	cursor: grab;
+}
+
+.dragHandle:active {
+	cursor: grabbing;
+}
+
+.trackText {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.rowTitle,
+.artist {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rowTitle {
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.artist {
+	color: var(--text-primary-muted);
+	font-size: 0.8125rem;
+}
+
+.meta {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	min-width: 0;
+	max-width: 100%;
+}
+
+.muted {
+	margin: 0;
+	color: var(--text-primary-muted);
+	font-size: 0.875rem;
+}
+
+.radioNotice {
+	margin: 0;
+	padding: var(--spacing-2) var(--spacing-3);
+	border-radius: var(--radius-lg);
+	background-color: var(--background-tertiary);
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	line-height: 1.4;
+}
+
+.footer {
+	padding-top: var(--spacing-2);
+	border-top: 0.0625rem solid var(--background-modifier-hover);
+}
