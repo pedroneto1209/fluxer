@@ -207,6 +207,9 @@ describe('bindMusicRoom', () => {
 		expect(applyToRoom).toHaveBeenCalledTimes(1);
 		room.emit(RoomEvent.TrackSubscribed, {}, {}, {identity: 'user_1_x'});
 		expect(applyToRoom).toHaveBeenCalledTimes(1);
+		// Another channel's music identity is not this call's music participant.
+		room.emit(RoomEvent.TrackSubscribed, {}, {}, {identity: 'music_2'});
+		expect(applyToRoom).toHaveBeenCalledTimes(1);
 		room.emit(RoomEvent.TrackSubscribed, {}, {}, {identity: 'music_1'});
 		expect(applyToRoom).toHaveBeenCalledTimes(2);
 		volume.setVolume(0.9);

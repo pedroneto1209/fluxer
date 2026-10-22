@@ -24,6 +24,9 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 export function useMusicGridEntries(entries: Array<VoiceGridEntry>, channelId: string): Array<VoiceGridEntry> {
 	const hasSession = MusicStore.sessionByChannel.has(channelId);
 	const room = MediaEngine.room;
+	// remoteParticipants is a plain LiveKit Map, not observable: a music participant joining or
+	// leaving shows up here because the grid re-renders on LiveKit participant events (and the
+	// session arriving over the data channel re-renders this observer).
 	const participant = hasSession ? room?.remoteParticipants.get(musicIdentityForChannel(channelId)) : undefined;
 	return useMemo(() => withMusicGridEntry(entries, participant), [entries, participant]);
 }

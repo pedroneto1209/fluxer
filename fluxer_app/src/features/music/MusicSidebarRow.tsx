@@ -19,9 +19,9 @@ import {observer} from 'mobx-react-lite';
 import type React from 'react';
 import {useCallback, useEffect} from 'react';
 
-const MusicVolumeMenu = observer(function MusicVolumeMenu() {
+const MusicVolumeMenu = observer(function MusicVolumeMenu({'data-flx': dataFlx}: {'data-flx'?: string}) {
 	return (
-		<MenuGroup>
+		<MenuGroup data-flx={dataFlx ?? 'music.sidebar-row.volume-menu.menu-group'}>
 			<MenuItemSlider
 				label="Volume da música"
 				value={Math.round(MusicVolume.volume * 100)}

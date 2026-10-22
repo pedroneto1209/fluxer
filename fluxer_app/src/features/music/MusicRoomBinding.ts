@@ -5,7 +5,7 @@
 // music volume.
 
 import {getSession, type MusicSessionState, parseSessionState} from '@app/features/music/MusicApi';
-import {isMusicIdentity, musicIdentityForChannel} from '@app/features/music/MusicIdentity';
+import {musicIdentityForChannel} from '@app/features/music/MusicIdentity';
 import MusicStore from '@app/features/music/MusicStore';
 import MusicVolume, {type MusicVolumeState} from '@app/features/music/MusicVolume';
 import {Logger} from '@app/features/platform/utils/AppLogger';
@@ -93,7 +93,7 @@ export function bindMusicRoom(
 	};
 
 	const onTrackSubscribed = (_track: unknown, _publication: unknown, participant: Participant): void => {
-		if (isMusicIdentity(participant.identity)) applyVolume();
+		if (participant.identity === musicIdentity) applyVolume();
 	};
 
 	room.on(RoomEvent.DataReceived, onDataReceived);
