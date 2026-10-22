@@ -2,7 +2,8 @@
 
 // "Fila" tab of the music UI: the users' queue and the recommended items that follow it
 // (dimmed). Every row drags by its whole body; the server clamps user items to the user
-// section and promotes a dropped recommended item into it. The Spotify radio notice and "Encerrar música".
+// section and promotes a dropped recommended item into it. The focusable ⠿ handle is the
+// keyboard entry for the drag (Ctrl/Cmd+D). Below the lists: the Spotify radio notice and "Encerrar música".
 // Only the lists scroll: "Encerrar música" stays pinned at the bottom of the balloon.
 
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
