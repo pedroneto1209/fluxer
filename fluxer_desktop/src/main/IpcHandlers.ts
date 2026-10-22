@@ -426,12 +426,15 @@ export function registerIpcHandlers(): void {
 		requirePrivilegedRendererDocumentSender(event, 'music:capture-spotify-redirect');
 		const win = BrowserWindow.fromWebContents(event.sender);
 		if (!win || win.isDestroyed() || win !== getMainWindow()) return null;
-		// The OAuth state of this attempt: redirects carrying another one are ignored.
-		if (typeof state !== 'string' || state.length === 0 || state.length > 512) return null;
+		// The OAuth state of this attempt: redirects carrying another one are ignored. Older
+		// renderers send none; the music service still validates the state then.
+		const validState = typeof state === 'string' && state.length > 0 && state.length <= 512;
+		if (!validState && state !== undefined) return null;
+		const expectedState = validState ? state : undefined;
 		const previous = activeSpotifyCapture;
 		activeSpotifyCapture = null;
 		if (previous) await previous.cancel();
-		const capture = captureRedirect({expectedState: state});
+		const capture = captureRedirect({expectedState});
 		activeSpotifyCapture = capture;
 		const url = await capture.result;
 		if (activeSpotifyCapture === capture) activeSpotifyCapture = null;
@@ -440,6 +443,8 @@ export function registerIpcHandlers(): void {
 	// The renderer no longer needs the capture (pasted address, settings closed): free the port.
 	ipcMain.handle('music:cancel-spotify-redirect', async (event): Promise<void> => {
 		requirePrivilegedRendererDocumentSender(event, 'music:cancel-spotify-redirect');
+		const win = BrowserWindow.fromWebContents(event.sender);
+		if (!win || win.isDestroyed() || win !== getMainWindow()) return;
 		const capture = activeSpotifyCapture;
 		activeSpotifyCapture = null;
 		if (capture) await capture.cancel();

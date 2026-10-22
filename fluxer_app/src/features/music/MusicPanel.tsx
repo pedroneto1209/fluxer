@@ -343,7 +343,13 @@ function ResultSection({
 			) : (
 				<ul className={styles.list} data-flx={`${dataFlx}.list`}>
 					{tracks.map((track) => (
-						<ResultRow key={`${track.source}:${track.sourceId}`} track={track} onAdd={onAdd} adding={adding} />
+						<ResultRow
+							key={`${track.source}:${track.sourceId}`}
+							track={track}
+							onAdd={onAdd}
+							adding={adding}
+							data-flx="music.music-panel.result-section.result-row"
+						/>
 					))}
 				</ul>
 			)}
@@ -585,7 +591,9 @@ function QueueRow({
 				</span>
 				<span className={styles.meta} data-flx="music.music-panel.queue.item.meta">
 					<SourceTag source={item.source} recommended={item.recommended} data-flx="music.music-panel.queue.item.tag" />
-					{!item.recommended && item.addedBy && <AddedBy userId={item.addedBy} />}
+					{!item.recommended && item.addedBy && (
+						<AddedBy userId={item.addedBy} data-flx="music.music-panel.queue-row.added-by" />
+					)}
 				</span>
 			</div>
 			<IconButton
@@ -613,7 +621,15 @@ function MusicQueue({session, run, pending}: {session: MusicSessionState; run: R
 			) : (
 				<ul className={styles.list} data-flx="music.music-panel.queue.list">
 					{session.queue.map((item, index) => (
-						<QueueRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
+						<QueueRow
+							key={item.id}
+							item={item}
+							index={index}
+							session={session}
+							run={run}
+							pending={pending}
+							data-flx="music.music-panel.music-queue.queue-row"
+						/>
 					))}
 				</ul>
 			)}
@@ -672,8 +688,10 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 			</header>
 			<Scroller className={styles.body} fade data-flx="music.music-panel.scroller">
 				<div className={styles.bodyContent} data-flx="music.music-panel.body">
-					{session && <NowPlaying session={session} run={run} pending={pending} />}
-					{session && <MyVolume />}
+					{session && (
+						<NowPlaying session={session} run={run} pending={pending} data-flx="music.music-panel.now-playing" />
+					)}
+					{session && <MyVolume data-flx="music.music-panel.my-volume" />}
 					{guildId && (
 						<MusicSearch
 							guildId={guildId}
@@ -681,6 +699,7 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 							run={run}
 							pending={pending}
 							hasSession={session != null}
+							data-flx="music.music-panel.music-search"
 						/>
 					)}
 					{error && (
@@ -693,7 +712,9 @@ export const MusicPanel = observer(function MusicPanel({channel}: {channel: Chan
 							{session.notice}
 						</p>
 					)}
-					{session && <MusicQueue session={session} run={run} pending={pending} />}
+					{session && (
+						<MusicQueue session={session} run={run} pending={pending} data-flx="music.music-panel.music-queue" />
+					)}
 				</div>
 			</Scroller>
 			{session && (

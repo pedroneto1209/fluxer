@@ -18,6 +18,7 @@ export function ensureMusicSidebarPolling(): void {
 			return MusicStore.availability === 'available';
 		},
 		isVisible: () => document.visibilityState === 'visible',
+		onUnavailable: (guildId) => MusicStore.forgetGuildSessions(guildId),
 	});
 	reaction(
 		() => SelectedGuild.selectedGuildId,

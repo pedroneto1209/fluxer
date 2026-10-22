@@ -50,6 +50,7 @@ export const MusicSidebarRow = observer(function MusicSidebarRow({
 		channelId: channel.id,
 		guildSessions: MusicStore.guildSessions.get(guildId),
 		liveSession: inCall ? MusicStore.sessionByChannel.get(channel.id) : undefined,
+		available: MusicStore.availability === 'available',
 	});
 	const handleClick = useCallback(() => NavigationCommands.selectChannel(guildId, channel.id), [guildId, channel.id]);
 	const handleContextMenu = useCallback(

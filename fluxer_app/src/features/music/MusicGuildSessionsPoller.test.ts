@@ -122,4 +122,36 @@ describe('MusicGuildSessionsPoller', () => {
 		expect(refresh.mock.calls.map((call) => call[0])).toEqual(['g1', 'g2']);
 		poller.stop();
 	});
+
+	it('drops the guild list when the service turns unavailable', async () => {
+		const state = {available: true};
+		const onUnavailable = vi.fn();
+		const refresh = vi.fn(async (_guildId: string) => {});
+		const gated = new MusicGuildSessionsPoller({
+			refresh,
+			ensureAvailable: async () => state.available,
+			isVisible: () => true,
+			onUnavailable,
+		});
+		gated.start('g1');
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onUnavailable).not.toHaveBeenCalled();
+		state.available = false;
+		await vi.advanceTimersByTimeAsync(15_000);
+		expect(onUnavailable).toHaveBeenCalledWith('g1');
+		expect(refresh).toHaveBeenCalledTimes(1);
+		gated.stop();
+	});
+
+	it('does not stay stuck behind a poll that never settles', async () => {
+		const refresh = vi.fn(() => new Promise<void>(() => {}));
+		const poller = new MusicGuildSessionsPoller({refresh, ensureAvailable: async () => true, isVisible: () => true});
+		poller.start('g1');
+		await vi.advanceTimersByTimeAsync(15_000);
+		expect(refresh).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(15_000);
+		// 30 s after it started, the hung poll no longer blocks the next one.
+		expect(refresh).toHaveBeenCalledTimes(2);
+		poller.stop();
+	});
 });

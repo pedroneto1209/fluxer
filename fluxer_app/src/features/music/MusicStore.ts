@@ -169,6 +169,10 @@ class MusicStore {
 		this.searchText = text;
 	}
 
+	forgetGuildSessions(guildId: string): void {
+		this.guildSessions.delete(guildId);
+	}
+
 	async refreshGuildSessions(guildId: string): Promise<void> {
 		try {
 			const sessions = await listGuildSessions(guildId);
