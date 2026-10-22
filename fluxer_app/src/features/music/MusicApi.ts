@@ -35,7 +35,10 @@ export interface MusicSessionState {
 	positionMs: number;
 	/** Unix ms at which positionMs was measured. */
 	positionAt: number;
+	/** The first items of the queue: data messages carry only the head of a long queue. */
 	queue: Array<MusicQueueItem>;
+	/** Total queue length on the server; at least queue.length. */
+	queueLength: number;
 	notice: string | null;
 	revision: number;
 }
@@ -138,6 +141,10 @@ export function parseSessionState(json: unknown): MusicSessionState | null {
 		positionMs: typeof json.position_ms === 'number' ? json.position_ms : 0,
 		positionAt: typeof json.position_at === 'number' ? json.position_at : 0,
 		queue: items,
+		queueLength:
+			typeof json.queue_length === 'number' && Number.isInteger(json.queue_length)
+				? Math.max(json.queue_length, items.length)
+				: items.length,
 		notice: typeof json.notice === 'string' ? json.notice : null,
 		revision,
 	};
@@ -217,10 +224,13 @@ export async function getSession(guildId: string, channelId: string): Promise<Mu
 
 export async function searchTracks(guildId: string, channelId: string, query: string): Promise<MusicSearchResult> {
 	const response = await request(`${channelPath(guildId, channelId)}/search?q=${encodeURIComponent(query)}`);
-	const body = (await response.json()) as {youtube?: Array<unknown>; spotify?: Array<unknown> | null};
+	const body: unknown = await response.json();
+	if (!isObject(body))
+		throw new MusicApiError(response.status, 'BAD_RESPONSE', 'Resposta inválida do serviço de música.');
 	const tracks = (list: Array<unknown>) => list.map(parseTrack).filter((t): t is MusicTrack => t !== null);
+	// A missing or malformed list means no results from that source.
 	return {
-		youtube: tracks(body.youtube ?? []),
+		youtube: Array.isArray(body.youtube) ? tracks(body.youtube) : [],
 		spotify: Array.isArray(body.spotify) ? tracks(body.spotify) : null,
 	};
 }
@@ -275,9 +285,13 @@ export async function stopSession(guildId: string, channelId: string): Promise<v
 
 export async function listGuildSessions(guildId: string): Promise<Array<MusicGuildSession>> {
 	const response = await request(`/api/guilds/${encodeURIComponent(guildId)}/sessions`);
-	const body = (await response.json()) as {sessions?: Array<unknown>};
+	const body: unknown = await response.json();
+	// A malformed answer is an error, not "no sessions": the sidebar keeps what it shows.
+	if (!isObject(body) || !Array.isArray(body.sessions)) {
+		throw new MusicApiError(response.status, 'BAD_RESPONSE', 'Resposta inválida do serviço de música.');
+	}
 	const result: Array<MusicGuildSession> = [];
-	for (const entry of body.sessions ?? []) {
+	for (const entry of body.sessions) {
 		if (!isObject(entry) || typeof entry.channel_id !== 'string') continue;
 		result.push({
 			channelId: entry.channel_id,

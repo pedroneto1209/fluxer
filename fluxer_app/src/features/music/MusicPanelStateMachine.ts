@@ -92,6 +92,13 @@ export function queueMoveIndex(fromIndex: number, targetIndex: number, position:
 	return index === fromIndex ? null : index;
 }
 
+/** "+N músicas na fila" for the queue items a state message left out, or null when none. */
+export function queueOverflowLabel(shown: number, total: number): string | null {
+	const hidden = total - shown;
+	if (hidden <= 0) return null;
+	return hidden === 1 ? '+1 música na fila' : `+${hidden} músicas na fila`;
+}
+
 export function formatMusicTime(ms: number): string {
 	const totalSeconds = Math.max(0, Math.floor(ms / 1000));
 	const hours = Math.floor(totalSeconds / 3600);
@@ -143,6 +150,8 @@ export interface MusicCommandRunner<State> {
 	readonly pending: boolean;
 	/** False when the command failed or was ignored because another one is in flight. */
 	run(command: () => Promise<State | null>): Promise<boolean>;
+	/** Forgets the command in flight (call left, logout): its result and error are dropped. */
+	reset(): void;
 }
 
 // One music command at a time per panel, so a double-click on "Pular" skips once.
@@ -152,6 +161,7 @@ export function createMusicCommandRunner<State>({
 	onPendingChange,
 }: MusicCommandRunnerOptions<State>): MusicCommandRunner<State> {
 	let pending = false;
+	let generation = 0;
 	const setPending = (value: boolean): void => {
 		pending = value;
 		onPendingChange?.(value);
@@ -162,18 +172,25 @@ export function createMusicCommandRunner<State>({
 		},
 		async run(command) {
 			if (pending) return false;
+			const current = generation;
 			setPending(true);
 			onError(null);
 			try {
 				const state = await command();
+				if (current !== generation) return false;
 				if (state) apply(state);
 				return true;
 			} catch (error) {
-				onError(error);
+				if (current === generation) onError(error);
 				return false;
 			} finally {
-				setPending(false);
+				if (current === generation) setPending(false);
 			}
+		},
+		reset() {
+			generation++;
+			if (pending) setPending(false);
+			onError(null);
 		},
 	};
 }

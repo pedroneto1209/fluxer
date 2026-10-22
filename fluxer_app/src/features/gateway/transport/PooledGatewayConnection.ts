@@ -51,6 +51,7 @@ import MemberSearch from '@app/features/member/state/MemberSearch';
 import AttachmentUrlRefresher from '@app/features/messaging/state/AttachmentUrlRefresher';
 import Messages from '@app/features/messaging/state/MessagingMessages';
 import ReportFlows from '@app/features/moderation/state/ReportFlows';
+import MusicStore from '@app/features/music/MusicStore';
 import Navigation from '@app/features/navigation/state/Navigation';
 import NavigationSideEffects from '@app/features/navigation/state/NavigationSideEffects';
 import SelectedGuild from '@app/features/navigation/state/SelectedGuild';
@@ -953,6 +954,7 @@ export class PooledGatewayConnection {
 		AttachmentUrlRefresher.reset();
 		ChannelFrecency.handleLogout();
 		MemberSearch.handleLogout();
+		MusicStore.handleLogout();
 		ReportFlows.reset();
 		ThreadPanel.closeCreate();
 		ThreadGuilds.reset();

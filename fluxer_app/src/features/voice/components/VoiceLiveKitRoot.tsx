@@ -2,6 +2,7 @@
 
 import {AttentionOverlay} from '@app/features/attention/AttentionOverlay';
 import AttentionStore from '@app/features/attention/AttentionStore';
+import {ensureMusicPanelAutoClose} from '@app/features/music/MusicCall';
 import {bindMusicRoom} from '@app/features/music/MusicRoomBinding';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
@@ -37,9 +38,7 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 	useEffect(
 		() =>
 			ComponentBus.subscribe('SOUNDBOARD_TOGGLE', () => {
-				void import('@app/features/voice/soundboard/SoundboardModal').then(({toggleSoundboard}) =>
-					toggleSoundboard(),
-				);
+				void import('@app/features/voice/soundboard/SoundboardModal').then(({toggleSoundboard}) => toggleSoundboard());
 			}),
 		[],
 	);
@@ -49,6 +48,7 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 
 	// Channel music: state pushed by the music participant, initial fetch, local volume.
 	// The room and the channel come from the same connection snapshot (App re-renders on room change).
+	useEffect(ensureMusicPanelAutoClose, []);
 	const musicGuildId = room ? MediaEngine.guildId : null;
 	const musicChannelId = room ? MediaEngine.channelId : null;
 	useEffect(

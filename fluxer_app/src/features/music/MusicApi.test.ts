@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {MusicApiError, startSpotifyAuthorize} from '@app/features/music/MusicApi';
+import {
+	listGuildSessions,
+	MusicApiError,
+	parseSessionState,
+	searchTracks,
+	startSpotifyAuthorize,
+} from '@app/features/music/MusicApi';
+import MusicStore from '@app/features/music/MusicStore';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 vi.mock('@app/features/app/state/RuntimeConfig', () => ({default: {webAppEndpoint: 'http://localhost'}}));
@@ -39,5 +46,111 @@ describe('startSpotifyAuthorize', () => {
 		const error = await startSpotifyAuthorize().catch((caught: unknown) => caught);
 		expect(error).toBeInstanceOf(MusicApiError);
 		expect((error as MusicApiError).code).toBe('BAD_RESPONSE');
+	});
+});
+
+const QUEUE_ITEM = {
+	id: 'q1',
+	source: 'youtube',
+	source_id: 'abc',
+	title: 'Song',
+	artist: 'Artist',
+	duration_ms: 1000,
+	artwork_url: null,
+	url: 'https://x',
+	added_by: null,
+	recommended: false,
+};
+
+function rawState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+	return {guild_id: 'g1', channel_id: 'c1', revision: 1, queue: [QUEUE_ITEM], ...overrides};
+}
+
+describe('parseSessionState queue', () => {
+	it('defaults queueLength to the queue it carries', () => {
+		expect(parseSessionState(rawState())?.queueLength).toBe(1);
+		expect(parseSessionState(rawState({queue_length: 'x'}))?.queueLength).toBe(1);
+		expect(parseSessionState(rawState({queue_length: -3}))?.queueLength).toBe(1);
+	});
+
+	it('reads the total queue_length the server sends', () => {
+		expect(parseSessionState(rawState({queue_length: 120}))?.queueLength).toBe(120);
+		// Never smaller than the items actually present.
+		expect(parseSessionState(rawState({queue_length: 0}))?.queueLength).toBe(1);
+	});
+
+	it('rejects a malformed queue item', () => {
+		expect(parseSessionState(rawState({queue: [QUEUE_ITEM, {id: 'q2', source: 'tidal'}]}))).toBeNull();
+		expect(parseSessionState(rawState({queue: [{...QUEUE_ITEM, id: 5}]}))).toBeNull();
+		expect(parseSessionState(rawState({queue: [null]}))).toBeNull();
+	});
+});
+
+describe('array guards', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('searchTracks treats non-array result lists as empty', async () => {
+		respondWith({youtube: {not: 'a list'}, spotify: 'nope'});
+		await expect(searchTracks('g1', 'c1', 'q')).resolves.toEqual({youtube: [], spotify: null});
+		respondWith({youtube: [{...QUEUE_ITEM}], spotify: [{...QUEUE_ITEM, source: 'spotify'}]});
+		const result = await searchTracks('g1', 'c1', 'q');
+		expect(result.youtube).toHaveLength(1);
+		expect(result.spotify).toHaveLength(1);
+	});
+
+	it('listGuildSessions rejects a non-array sessions field', async () => {
+		respondWith({sessions: {c1: {}}});
+		const error = await listGuildSessions('g1').catch((caught: unknown) => caught);
+		expect(error).toBeInstanceOf(MusicApiError);
+		expect((error as MusicApiError).code).toBe('BAD_RESPONSE');
+		respondWith(null);
+		await expect(listGuildSessions('g1')).rejects.toBeInstanceOf(MusicApiError);
+		respondWith({sessions: [{channel_id: 'c1', now_playing: null}, 'junk']});
+		await expect(listGuildSessions('g1')).resolves.toEqual([{channelId: 'c1', nowPlaying: null}]);
+	});
+});
+
+describe('MusicStore.refreshGuildSessions', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		MusicStore.guildSessions.clear();
+	});
+
+	function respondStatus(status: number, body: unknown = {code: 'X', message: 'x'}): void {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify(body), {status})),
+		);
+	}
+
+	it('stores the sessions on success', async () => {
+		respondWith({sessions: [{channel_id: 'c1', now_playing: QUEUE_ITEM}]});
+		await MusicStore.refreshGuildSessions('g1');
+		expect(MusicStore.guildSessions.get('g1')?.[0]?.nowPlaying?.title).toBe('Song');
+	});
+
+	it('keeps the last list on a transient failure', async () => {
+		respondWith({sessions: [{channel_id: 'c1', now_playing: null}]});
+		await MusicStore.refreshGuildSessions('g1');
+		respondStatus(502);
+		await MusicStore.refreshGuildSessions('g1');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => Promise.reject(new TypeError('offline'))),
+		);
+		await MusicStore.refreshGuildSessions('g1');
+		respondWith({sessions: 'garbage'});
+		await MusicStore.refreshGuildSessions('g1');
+		expect(MusicStore.guildSessions.get('g1')).toEqual([{channelId: 'c1', nowPlaying: null}]);
+	});
+
+	it('drops the list when the service says not found', async () => {
+		respondWith({sessions: [{channel_id: 'c1', now_playing: null}]});
+		await MusicStore.refreshGuildSessions('g1');
+		respondStatus(404, {code: 'NOT_FOUND', message: 'x'});
+		await MusicStore.refreshGuildSessions('g1');
+		expect(MusicStore.guildSessions.has('g1')).toBe(false);
 	});
 });

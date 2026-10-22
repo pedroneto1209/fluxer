@@ -111,6 +111,9 @@ class MusicStore {
 	applyState(state: MusicSessionState): void {
 		const current = this.sessionByChannel.get(state.channelId);
 		if (current && state.revision < current.revision) return;
+		// Data messages carry only the head of a long queue; for the same revision keep the
+		// full list a GET already brought.
+		if (current && state.revision === current.revision && state.queue.length < current.queue.length) return;
 		const now = Date.now();
 		// A skewed server or local clock would make the progress bar jump; measure from now instead.
 		const rebased = Math.abs(state.positionAt - now) > MAX_CLOCK_SKEW_MS ? {...state, positionAt: now} : state;
@@ -145,10 +148,21 @@ class MusicStore {
 		this.panelOpen = true;
 	}
 
-	/** Also runs when the call ends or changes channel (MusicPanelAutoClose). */
 	closePanel(): void {
 		this.panelOpen = false;
 		this.commandError = null;
+	}
+
+	/** The call ended or moved to another channel (MusicPanelAutoClose). */
+	handleCallLeft(): void {
+		this.commandRunner.reset();
+		this.closePanel();
+	}
+
+	/** Logout or account switch (PooledGatewayConnection.resetEphemeralForegroundStates). */
+	handleLogout(): void {
+		this.handleCallLeft();
+		this.guildSessions.clear();
 	}
 
 	setSearchText(text: string): void {
@@ -161,7 +175,9 @@ class MusicStore {
 			runInAction(() => {
 				this.guildSessions.set(guildId, sessions);
 			});
-		} catch {
+		} catch (error) {
+			// A transient failure keeps the last list; only a definitive "not found" drops it.
+			if (!(error instanceof MusicApiError && error.status === 404)) return;
 			runInAction(() => {
 				this.guildSessions.delete(guildId);
 			});

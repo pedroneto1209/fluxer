@@ -31,9 +31,12 @@ export function isMusicPanelShown(channelId: string): boolean {
 
 let autoCloseInstalled = false;
 
-/** Closes the panel when the call ends or changes channel. Safe to call many times. */
+/**
+ * Closes the panel and drops its command state when the call ends or changes channel.
+ * Installed from VoiceLiveKitRoot, which is mounted for the whole call. Safe to call many times.
+ */
 export function ensureMusicPanelAutoClose(): void {
 	if (autoCloseInstalled) return;
 	autoCloseInstalled = true;
-	installMusicPanelAutoClose(() => MediaEngine.channelId, MusicStore.closePanel);
+	installMusicPanelAutoClose(() => MediaEngine.channelId, MusicStore.handleCallLeft);
 }

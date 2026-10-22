@@ -28,6 +28,7 @@ function makeState(overrides: Partial<MusicSessionState> = {}): MusicSessionStat
 		positionMs: 10_000,
 		positionAt: 1_000_000,
 		queue: [],
+		queueLength: 0,
 		notice: null,
 		revision: 5,
 		...overrides,
@@ -51,6 +52,18 @@ describe('MusicStore', () => {
 		expect(MusicStore.sessionByChannel.get('c1')?.paused).toBe(false);
 		MusicStore.applyState(makeState({revision: 6, paused: true}));
 		expect(MusicStore.sessionByChannel.get('c1')?.paused).toBe(true);
+	});
+
+	it('a shorter queue of the same revision does not replace the longer one', () => {
+		const base = makeState();
+		const item = base.nowPlaying!;
+		const full = Array.from({length: 60}, (_, index) => ({...item, id: `q${index}`}));
+		MusicStore.applyState(makeState({revision: 7, queue: full, queueLength: 60}));
+		MusicStore.applyState(makeState({revision: 7, queue: full.slice(0, 40), queueLength: 60}));
+		expect(MusicStore.sessionByChannel.get('c1')?.queue).toHaveLength(60);
+		MusicStore.applyState(makeState({revision: 8, queue: full.slice(1, 41), queueLength: 59}));
+		expect(MusicStore.sessionByChannel.get('c1')?.queue).toHaveLength(40);
+		expect(MusicStore.sessionByChannel.get('c1')?.queueLength).toBe(59);
 	});
 
 	it('currentPositionMs extrapolates while playing', () => {
@@ -124,6 +137,26 @@ describe('MusicStore', () => {
 		MusicStore.togglePanel();
 		expect(MusicStore.panelOpen).toBe(false);
 		expect(MusicStore.commandError).toBeNull();
+	});
+
+	it('forgets the command state when the call is left or the session ends', async () => {
+		for (const reset of [() => MusicStore.handleCallLeft(), () => MusicStore.handleLogout()]) {
+			MusicStore.openPanel();
+			await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
+			const hanging = MusicStore.runCommand(() => new Promise<MusicSessionState>(() => {}));
+			expect(MusicStore.commandPending).toBe(true);
+			reset();
+			expect(MusicStore.panelOpen).toBe(false);
+			expect(MusicStore.commandPending).toBe(false);
+			expect(MusicStore.commandError).toBeNull();
+			void hanging;
+		}
+	});
+
+	it('logout clears the community sessions', () => {
+		MusicStore.guildSessions.set('g1', [{channelId: 'c1', nowPlaying: null}]);
+		MusicStore.handleLogout();
+		expect(MusicStore.guildSessions.size).toBe(0);
 	});
 
 	it('currentPositionMs is 0 without a session', () => {

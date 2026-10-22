@@ -27,6 +27,7 @@ import {
 	describeMusicProgress,
 	formatMusicTime,
 	queueMoveIndex,
+	queueOverflowLabel,
 } from '@app/features/music/MusicPanelStateMachine';
 import MusicStore from '@app/features/music/MusicStore';
 import MusicVolume from '@app/features/music/MusicVolume';
@@ -599,6 +600,7 @@ function QueueRow({
 }
 
 function MusicQueue({session, run, pending}: {session: MusicSessionState; run: RunCommand; pending: boolean}) {
+	const overflow = queueOverflowLabel(session.queue.length, session.queueLength);
 	return (
 		<section className={styles.section} aria-label="Fila" data-flx="music.music-panel.queue">
 			<h3 className={styles.sectionTitle} data-flx="music.music-panel.queue.title">
@@ -614,6 +616,11 @@ function MusicQueue({session, run, pending}: {session: MusicSessionState; run: R
 						<QueueRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
 					))}
 				</ul>
+			)}
+			{overflow && (
+				<p className={styles.muted} data-flx="music.music-panel.queue.overflow">
+					{overflow}
+				</p>
 			)}
 		</section>
 	);

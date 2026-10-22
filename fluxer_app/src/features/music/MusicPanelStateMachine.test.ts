@@ -9,6 +9,7 @@ import {
 	formatMusicTime,
 	MUSIC_SEARCH_DEBOUNCE_MS,
 	queueMoveIndex,
+	queueOverflowLabel,
 } from '@app/features/music/MusicPanelStateMachine';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
@@ -208,5 +209,44 @@ describe('createMusicCommandRunner', () => {
 		await expect(runner.run(async () => null)).resolves.toBe(true);
 		expect(onError).toHaveBeenLastCalledWith(null);
 		expect(runner.pending).toBe(false);
+	});
+
+	it('reset drops the in-flight command: no apply, no error, a new command can run', async () => {
+		const apply = vi.fn();
+		const onError = vi.fn();
+		const pendingChanges: Array<boolean> = [];
+		const runner = createMusicCommandRunner<{revision: number}>({
+			apply,
+			onError,
+			onPendingChange: (pending) => pendingChanges.push(pending),
+		});
+		const stale = deferred<{revision: number}>();
+		const first = runner.run(() => stale.promise);
+		runner.reset();
+		expect(runner.pending).toBe(false);
+		expect(onError).toHaveBeenLastCalledWith(null);
+		const fresh = deferred<{revision: number}>();
+		const second = runner.run(() => fresh.promise);
+		expect(runner.pending).toBe(true);
+		stale.reject(new Error('old call'));
+		await expect(first).resolves.toBe(false);
+		// The stale command neither reports its error nor releases the new command's pending state.
+		expect(onError).toHaveBeenLastCalledWith(null);
+		expect(runner.pending).toBe(true);
+		fresh.resolve({revision: 9});
+		await expect(second).resolves.toBe(true);
+		expect(apply).toHaveBeenCalledTimes(1);
+		expect(apply).toHaveBeenCalledWith({revision: 9});
+		expect(pendingChanges).toEqual([true, false, true, false]);
+	});
+});
+
+describe('queueOverflowLabel', () => {
+	it('labels the queue items the state message left out', () => {
+		expect(queueOverflowLabel(3, 3)).toBeNull();
+		expect(queueOverflowLabel(0, 0)).toBeNull();
+		expect(queueOverflowLabel(40, 2)).toBeNull();
+		expect(queueOverflowLabel(40, 41)).toBe('+1 música na fila');
+		expect(queueOverflowLabel(40, 125)).toBe('+85 músicas na fila');
 	});
 });

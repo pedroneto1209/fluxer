@@ -4,7 +4,7 @@
 // the music panel and only shows up where music works: instance with the music service,
 // guild voice call over the SFU (not peer-to-peer) and the desktop layout.
 
-import {ensureMusicPanelAutoClose, isMusicUsableInCall} from '@app/features/music/MusicCall';
+import {isMusicUsableInCall} from '@app/features/music/MusicCall';
 import MusicStore from '@app/features/music/MusicStore';
 import FocusRing from '@app/features/ui/focus_ring/FocusRing';
 import {Tooltip} from '@app/features/ui/tooltip/Tooltip';
@@ -17,7 +17,6 @@ import {useEffect} from 'react';
 export const MusicControlBarButton = observer(function MusicControlBarButton() {
 	useEffect(() => {
 		void MusicStore.checkAvailability();
-		ensureMusicPanelAutoClose();
 	}, []);
 	if (!isMusicUsableInCall()) return null;
 	const open = MusicStore.panelOpen;
