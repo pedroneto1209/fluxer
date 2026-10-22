@@ -84,6 +84,11 @@ describe('MusicStore', () => {
 		expect(MusicStore.panelOpen).toBe(false);
 	});
 
+	it('runs a command when the panel holds runCommand detached', async () => {
+		const run = MusicStore.runCommand;
+		await expect(run(async () => null)).resolves.toBe(true);
+	});
+
 	it('runs one command at a time across panel remounts and keeps its error', async () => {
 		let resolve!: (state: MusicSessionState) => void;
 		const skip = vi.fn(() => new Promise<MusicSessionState>((res) => (resolve = res)));
