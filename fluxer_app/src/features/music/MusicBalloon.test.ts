@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {MusicApiError, type MusicSessionState} from '@app/features/music/MusicApi';
-import MusicBalloonState, {initialTabFor, MUSIC_BALLOON_KEY} from '@app/features/music/MusicBalloonState';
+import MusicBalloonState, {
+	handleMusicCallLeft,
+	initialTabFor,
+	MUSIC_BALLOON_KEY,
+} from '@app/features/music/MusicBalloonState';
 import MusicStore from '@app/features/music/MusicStore';
 import * as PopoutCommands from '@app/features/ui/commands/PopoutCommands';
 import {afterEach, describe, expect, it, vi} from 'vitest';
@@ -44,11 +48,11 @@ describe('music balloon', () => {
 		vi.mocked(PopoutCommands.close).mockClear();
 	});
 
-	it('closes the balloon and drops the command state when the call is left', async () => {
+	it('the call-left wiring closes the balloon and drops the command state', async () => {
 		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
 		const hanging = MusicStore.runCommand(() => new Promise<MusicSessionState>(() => {}));
 		expect(MusicStore.commandPending).toBe(true);
-		MusicStore.handleCallLeft();
+		handleMusicCallLeft();
 		expect(PopoutCommands.close).toHaveBeenCalledWith(MUSIC_BALLOON_KEY);
 		expect(MusicStore.commandPending).toBe(false);
 		expect(MusicStore.commandError).toBeNull();

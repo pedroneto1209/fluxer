@@ -7,7 +7,6 @@ import {
 	type MusicGuildSession,
 	type MusicSessionState,
 } from '@app/features/music/MusicApi';
-import MusicBalloonState from '@app/features/music/MusicBalloonState';
 import {createMusicCommandRunner} from '@app/features/music/MusicPanelStateMachine';
 import {makeAutoObservable, runInAction} from 'mobx';
 
@@ -147,11 +146,13 @@ class MusicStore {
 		this.commandError = null;
 	}
 
-	/** The call ended or moved to another channel (MusicPanelAutoClose). */
+	/**
+	 * The call ended or moved to another channel: drops the command state. Store state only;
+	 * closing the balloon is wired in MusicBalloonState.handleMusicCallLeft (no UI imports here).
+	 */
 	handleCallLeft(): void {
 		this.commandRunner.reset();
 		this.commandError = null;
-		MusicBalloonState.close();
 	}
 
 	/** Logout or account switch (PooledGatewayConnection.resetEphemeralForegroundStates). */

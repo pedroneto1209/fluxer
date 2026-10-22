@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {MusicApiError, type MusicSessionState, parseSessionState} from '@app/features/music/MusicApi';
-import {MUSIC_BALLOON_KEY} from '@app/features/music/MusicBalloonState';
 import MusicStore from '@app/features/music/MusicStore';
-import * as PopoutCommands from '@app/features/ui/commands/PopoutCommands';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 vi.mock('@app/features/app/state/RuntimeConfig', () => ({default: {webAppEndpoint: 'http://localhost'}}));
 vi.mock('@app/features/platform/state/AuthSession', () => ({default: {token: null}}));
-vi.mock('@app/features/ui/commands/PopoutCommands', () => ({close: vi.fn()}));
 
 function makeState(overrides: Partial<MusicSessionState> = {}): MusicSessionState {
 	return {
@@ -133,12 +130,10 @@ describe('MusicStore', () => {
 
 	it('forgets the command state when the call is left or the session ends', async () => {
 		for (const reset of [() => MusicStore.handleCallLeft(), () => MusicStore.handleLogout()]) {
-			vi.mocked(PopoutCommands.close).mockClear();
 			await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
 			const hanging = MusicStore.runCommand(() => new Promise<MusicSessionState>(() => {}));
 			expect(MusicStore.commandPending).toBe(true);
 			reset();
-			expect(PopoutCommands.close).toHaveBeenCalledWith(MUSIC_BALLOON_KEY);
 			expect(MusicStore.commandPending).toBe(false);
 			expect(MusicStore.commandError).toBeNull();
 			void hanging;

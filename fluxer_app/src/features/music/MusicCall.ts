@@ -3,6 +3,7 @@
 // Where music can be used: reads the current call from the media engine. Call from
 // observers so the UI follows joins, leaves and mesh-to-SFU conversions.
 
+import {handleMusicCallLeft} from '@app/features/music/MusicBalloonState';
 import {installMusicPanelAutoClose} from '@app/features/music/MusicPanelAutoClose';
 import {canUseMusicInCall} from '@app/features/music/MusicPanelStateMachine';
 import MusicStore from '@app/features/music/MusicStore';
@@ -34,5 +35,5 @@ let autoCloseInstalled = false;
 export function ensureMusicPanelAutoClose(): void {
 	if (autoCloseInstalled) return;
 	autoCloseInstalled = true;
-	installMusicPanelAutoClose(() => MediaEngine.channelId, MusicStore.handleCallLeft);
+	installMusicPanelAutoClose(() => MediaEngine.channelId, handleMusicCallLeft);
 }

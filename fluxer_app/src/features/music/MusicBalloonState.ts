@@ -4,6 +4,7 @@
 // opens the same popout key, so there is only ever one balloon.
 
 import type {MusicSessionState} from '@app/features/music/MusicApi';
+import MusicStore from '@app/features/music/MusicStore';
 import * as PopoutCommands from '@app/features/ui/commands/PopoutCommands';
 import {makeAutoObservable} from 'mobx';
 
@@ -37,4 +38,15 @@ class MusicBalloonState {
 	}
 }
 
-export default new MusicBalloonState();
+const musicBalloonState = new MusicBalloonState();
+export default musicBalloonState;
+
+/**
+ * The call ended or moved to another channel (MusicPanelAutoClose, installed by MusicCall):
+ * drops the command state and closes the balloon. On logout the call ends too, so the
+ * balloon closes through this path (and its triggers unmount with the call).
+ */
+export function handleMusicCallLeft(): void {
+	MusicStore.handleCallLeft();
+	musicBalloonState.close();
+}
