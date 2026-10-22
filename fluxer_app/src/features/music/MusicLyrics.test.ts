@@ -92,16 +92,38 @@ describe('MusicLyricsState', () => {
 		expect(() => state.toggleEnabled()).not.toThrow();
 	});
 
-	it('fetches a track once, is loading until then, and a failure counts as no lyrics', async () => {
-		const fetch = vi.fn().mockResolvedValueOnce({kind: 'plain', text: 'hi'}).mockRejectedValueOnce(new Error('down'));
+	it('fetches a track once and is loading until then', async () => {
+		const fetch = vi.fn().mockResolvedValue({kind: 'plain', text: 'hi'});
 		const state = new MusicLyricsState(fetch, () => null);
 		expect(state.lyricsOf('youtube', 'a')).toBe('loading');
 		state.ensure('g', 'c', 'youtube', 'a');
 		state.ensure('g', 'c', 'youtube', 'a');
-		state.ensure('g', 'c', 'spotify', 'b');
-		await vi.waitFor(() => expect(state.lyricsOf('spotify', 'b')).toEqual(NO_LYRICS));
-		expect(state.lyricsOf('youtube', 'a')).toEqual({kind: 'plain', text: 'hi'});
-		expect(fetch).toHaveBeenCalledTimes(2);
+		await vi.waitFor(() => expect(state.lyricsOf('youtube', 'a')).toEqual({kind: 'plain', text: 'hi'}));
+		expect(fetch).toHaveBeenCalledTimes(1);
 		expect(fetch).toHaveBeenCalledWith('g', 'c', 'youtube', 'a');
+	});
+
+	it('retries a failed request while still loading, then gives up as no lyrics', async () => {
+		vi.useFakeTimers();
+		try {
+			const fetch = vi
+				.fn()
+				.mockRejectedValueOnce(new Error('down'))
+				.mockResolvedValueOnce({kind: 'plain', text: 'back'})
+				.mockRejectedValue(new Error('down'));
+			const state = new MusicLyricsState(fetch, () => null);
+			state.ensure('g', 'c', 'youtube', 'a');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(state.lyricsOf('youtube', 'a')).toBe('loading');
+			await vi.advanceTimersByTimeAsync(30_000);
+			expect(state.lyricsOf('youtube', 'a')).toEqual({kind: 'plain', text: 'back'});
+
+			state.ensure('g', 'c', 'spotify', 'b');
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(state.lyricsOf('spotify', 'b')).toEqual(NO_LYRICS);
+			expect(fetch).toHaveBeenCalledTimes(5);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

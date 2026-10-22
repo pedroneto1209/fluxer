@@ -9,6 +9,8 @@ import {makeAutoObservable, observable, runInAction} from 'mobx';
 
 const STORAGE_KEY = 'fluxer.music.lyrics';
 const MAX_ENTRIES = 50;
+const RETRIES = 3;
+const RETRY_MS = 30_000;
 
 export interface MusicLyricsStorage {
 	getItem(key: string): string | null;
@@ -38,9 +40,9 @@ export class MusicLyricsState {
 		} catch {
 			// Storage unavailable: keep the default (on).
 		}
-		makeAutoObservable<this, 'getStorage' | 'fetch'>(
+		makeAutoObservable<this, 'getStorage' | 'fetch' | 'load'>(
 			this,
-			{byTrack: false, getStorage: false, fetch: false},
+			{byTrack: false, getStorage: false, fetch: false, load: false},
 			{autoBind: true},
 		);
 	}
@@ -57,7 +59,7 @@ export class MusicLyricsState {
 		return this.byTrack.get(lyricsKey(source, sourceId)) ?? 'loading';
 	}
 
-	/** Fetches a track's lyrics once. A failed request counts as "no lyrics" for that track. */
+	/** Fetches a track's lyrics once (retrying a failed request a few times). */
 	ensure(guildId: string, channelId: string, source: string, sourceId: string): void {
 		const key = lyricsKey(source, sourceId);
 		if (this.byTrack.has(key)) return;
@@ -66,9 +68,25 @@ export class MusicLyricsState {
 			if (oldest !== undefined) this.byTrack.delete(oldest);
 		}
 		this.byTrack.set(key, 'loading');
+		this.load(key, guildId, channelId, source, sourceId, 0);
+	}
+
+	/** A failed request (network, service restarting) stays "loading" and is retried, so a
+	 * passing failure never shows "Sem letra"; after the last retry it counts as no lyrics. */
+	private load(key: string, guildId: string, channelId: string, source: string, sourceId: string, attempt: number) {
 		this.fetch(guildId, channelId, source, sourceId).then(
-			(lyrics) => runInAction(() => this.byTrack.set(key, lyrics)),
-			() => runInAction(() => this.byTrack.set(key, NO_LYRICS)),
+			(lyrics) =>
+				runInAction(() => {
+					if (this.byTrack.has(key)) this.byTrack.set(key, lyrics);
+				}),
+			() => {
+				if (!this.byTrack.has(key)) return; // evicted meanwhile
+				if (attempt + 1 >= RETRIES) {
+					runInAction(() => this.byTrack.set(key, NO_LYRICS));
+					return;
+				}
+				setTimeout(() => this.load(key, guildId, channelId, source, sourceId, attempt + 1), RETRY_MS);
+			},
 		);
 	}
 }

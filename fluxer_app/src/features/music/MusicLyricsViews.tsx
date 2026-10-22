@@ -38,16 +38,17 @@ export function useCurrentLyrics(session: MusicSessionState | null | undefined):
 /** Index of the line being sung, re-evaluated a few times a second while the track plays. */
 function useCurrentLineIndex(session: MusicSessionState, lyrics: MusicLyrics | 'loading' | null): number {
 	const synced = lyrics !== null && lyrics !== 'loading' && lyrics.kind === 'synced' ? lyrics : null;
-	const [now, setNow] = useState(() => Date.now());
+	// The tick only re-renders; the position is always read at render time, so the first render
+	// after a resume or a new state is never computed from a stale clock.
+	const [, setTick] = useState(0);
 	const ticking = synced !== null && !session.paused;
 	useEffect(() => {
 		if (!ticking) return;
-		setNow(Date.now());
-		const timer = window.setInterval(() => setNow(Date.now()), TICK_MS);
+		const timer = window.setInterval(() => setTick((n) => n + 1), TICK_MS);
 		return () => window.clearInterval(timer);
 	}, [ticking]);
 	if (!synced) return -1;
-	return currentLineIndex(synced.lines, MusicStore.currentPositionMs(session.channelId, ticking ? now : Date.now()));
+	return currentLineIndex(synced.lines, MusicStore.currentPositionMs(session.channelId, Date.now()));
 }
 
 export const MusicLyricsToggle = observer(function MusicLyricsToggle({'data-flx': dataFlx}: {'data-flx': string}) {
