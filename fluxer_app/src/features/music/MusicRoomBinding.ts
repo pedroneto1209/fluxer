@@ -19,6 +19,8 @@ const logger = new Logger('MusicRoomBinding');
 const decoder = new TextDecoder();
 
 export interface MusicRoomBindingDependencies {
+	/** Resolves once the service availability is known (sharing any in-flight check); true when it runs. */
+	ensureAvailable: () => Promise<boolean>;
 	getSession: (guildId: string, channelId: string) => Promise<MusicSessionState | null>;
 	volume: MusicVolumeState;
 	/** Global output volume percent; read inside a mobx reaction, so it should be observable. */
@@ -38,6 +40,10 @@ export function bindMusicRoom(
 	guildId: string | null,
 	channelId: string,
 	dependencies: MusicRoomBindingDependencies = {
+		ensureAvailable: async () => {
+			await MusicStore.checkAvailability();
+			return MusicStore.availability === 'available';
+		},
 		getSession,
 		volume: MusicVolume,
 		getOutputVolume: () => VoiceSettings.getOutputVolume(),
@@ -51,8 +57,10 @@ export function bindMusicRoom(
 
 	const fetchInitialState = (): void => {
 		if (!guildId) return;
+		// Instances without the music service answer with HTML; do not request the session there.
 		dependencies
-			.getSession(guildId, channelId)
+			.ensureAvailable()
+			.then((available) => (!disposed && available ? dependencies.getSession(guildId, channelId) : null))
 			.then((state) => {
 				if (!disposed && state && state.channelId === channelId) MusicStore.applyState(state);
 			})

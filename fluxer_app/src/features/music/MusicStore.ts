@@ -13,6 +13,10 @@ import {makeAutoObservable, runInAction} from 'mobx';
 export type MusicAvailability = 'unknown' | 'checking' | 'available' | 'unavailable';
 
 const SERVICE_RECHECK_MS = 5 * 60_000;
+/** Consecutive failed re-checks before a known-available service is treated as gone. */
+const FAILURES_BEFORE_UNAVAILABLE = 2;
+/** Larger gaps between the server's positionAt and the local clock are treated as clock skew. */
+const MAX_CLOCK_SKEW_MS = 5_000;
 
 const ERROR_MESSAGES: Record<string, string> = {
 	UNAUTHORIZED: 'Você precisa estar conectado para usar a música.',
@@ -46,6 +50,8 @@ class MusicStore {
 	/** Error of the last panel command, ready to show. */
 	commandError: string | null = null;
 	private lastCheckAt = 0;
+	private checkInFlight: Promise<void> | null = null;
+	private consecutiveFailures = 0;
 	// Held here, not in the panel, so a panel remount mid-command still blocks a second one.
 	private readonly commandRunner = createMusicCommandRunner<MusicSessionState>({
 		apply: (state) => this.applyState(state),
@@ -60,28 +66,55 @@ class MusicStore {
 	});
 
 	constructor() {
-		makeAutoObservable<this, 'lastCheckAt' | 'commandRunner'>(
+		makeAutoObservable<this, 'lastCheckAt' | 'checkInFlight' | 'consecutiveFailures' | 'commandRunner'>(
 			this,
-			{lastCheckAt: false, commandRunner: false, runCommand: false},
+			{
+				lastCheckAt: false,
+				checkInFlight: false,
+				consecutiveFailures: false,
+				commandRunner: false,
+				runCommand: false,
+				checkAvailability: false,
+			},
 			{autoBind: true},
 		);
 	}
 
-	async checkAvailability(force = false): Promise<void> {
-		if (this.availability === 'checking') return;
-		if (!force && this.availability !== 'unknown' && Date.now() - this.lastCheckAt < SERVICE_RECHECK_MS) return;
-		this.availability = 'checking';
-		const available = await fetchMusicServiceAvailable();
+	/**
+	 * Probes the music service at most every few minutes. Concurrent callers share the
+	 * in-flight probe. 'checking' is only shown before the first answer: re-checks keep
+	 * the current value so the UI does not unmount, and a known-available service only
+	 * becomes 'unavailable' after FAILURES_BEFORE_UNAVAILABLE consecutive failed probes.
+	 */
+	checkAvailability(force = false): Promise<void> {
+		if (this.checkInFlight) return this.checkInFlight;
+		if (!force && this.availability !== 'unknown' && Date.now() - this.lastCheckAt < SERVICE_RECHECK_MS) {
+			return Promise.resolve();
+		}
 		runInAction(() => {
-			this.availability = available ? 'available' : 'unavailable';
-			this.lastCheckAt = Date.now();
+			if (this.availability === 'unknown') this.availability = 'checking';
 		});
+		const check = fetchMusicServiceAvailable().then((available) => {
+			runInAction(() => {
+				this.consecutiveFailures = available ? 0 : this.consecutiveFailures + 1;
+				const keepAvailable =
+					this.availability === 'available' && this.consecutiveFailures < FAILURES_BEFORE_UNAVAILABLE;
+				this.availability = available || keepAvailable ? 'available' : 'unavailable';
+				this.lastCheckAt = Date.now();
+				this.checkInFlight = null;
+			});
+		});
+		this.checkInFlight = check;
+		return check;
 	}
 
 	applyState(state: MusicSessionState): void {
 		const current = this.sessionByChannel.get(state.channelId);
 		if (current && state.revision < current.revision) return;
-		this.sessionByChannel.set(state.channelId, state);
+		const now = Date.now();
+		// A skewed server or local clock would make the progress bar jump; measure from now instead.
+		const rebased = Math.abs(state.positionAt - now) > MAX_CLOCK_SKEW_MS ? {...state, positionAt: now} : state;
+		this.sessionByChannel.set(state.channelId, rebased);
 	}
 
 	clearChannel(channelId: string): void {
@@ -104,15 +137,18 @@ class MusicStore {
 	}
 
 	togglePanel(): void {
-		this.panelOpen = !this.panelOpen;
+		if (this.panelOpen) this.closePanel();
+		else this.panelOpen = true;
 	}
 
 	openPanel(): void {
 		this.panelOpen = true;
 	}
 
+	/** Also runs when the call ends or changes channel (MusicPanelAutoClose). */
 	closePanel(): void {
 		this.panelOpen = false;
+		this.commandError = null;
 	}
 
 	setSearchText(text: string): void {

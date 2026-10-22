@@ -298,11 +298,20 @@ export async function getSpotifyStatus(): Promise<SpotifyStatus> {
 	return parseSpotifyStatus(await (await request('/api/spotify/status')).json());
 }
 
+const SPOTIFY_AUTHORIZE_ORIGIN = 'https://accounts.spotify.com/';
+
 export async function startSpotifyAuthorize(): Promise<{url: string; state: string}> {
-	const body = (await (await request('/api/spotify/authorize', jsonInit('POST'))).json()) as {
-		url: string;
-		state: string;
-	};
+	const response = await request('/api/spotify/authorize', jsonInit('POST'));
+	const body: unknown = await response.json();
+	// The URL is opened in the browser, so only ever open Spotify's own login page.
+	if (
+		!isObject(body) ||
+		typeof body.url !== 'string' ||
+		!body.url.startsWith(SPOTIFY_AUTHORIZE_ORIGIN) ||
+		typeof body.state !== 'string'
+	) {
+		throw new MusicApiError(response.status, 'BAD_RESPONSE', 'Resposta inválida do serviço de música.');
+	}
 	return {url: body.url, state: body.state};
 }
 

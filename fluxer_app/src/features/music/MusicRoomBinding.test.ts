@@ -38,19 +38,23 @@ class FakeRoom extends EventEmitter {
 	remoteParticipants = new Map<string, unknown>();
 }
 
-function setup(options: {state?: ConnectionState; session?: MusicSessionState | null} = {}) {
+function setup(
+	options: {state?: ConnectionState; session?: MusicSessionState | null; ensureAvailable?: () => Promise<boolean>} = {},
+) {
 	const room = new FakeRoom();
 	if (options.state) room.state = options.state;
 	const volume = new MusicVolumeState(() => null);
 	const applyToRoom = vi.spyOn(volume, 'applyToRoom');
 	const getSession = vi.fn(async () => options.session ?? null);
 	const outputVolume = observable.box(100);
+	const ensureAvailable = vi.fn(options.ensureAvailable ?? (async () => true));
 	const dispose = bindMusicRoom(room as unknown as Room, 'g1', '1', {
+		ensureAvailable,
 		getSession,
 		volume,
 		getOutputVolume: () => outputVolume.get(),
 	});
-	return {room, volume, applyToRoom, getSession, outputVolume, dispose};
+	return {room, volume, applyToRoom, getSession, ensureAvailable, outputVolume, dispose};
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -98,6 +102,39 @@ describe('bindMusicRoom', () => {
 		await flush();
 		expect(getSession).toHaveBeenCalledWith('g1', '1');
 		expect(MusicStore.sessionByChannel.get('1')?.revision).toBe(9);
+	});
+
+	it('does not request the session on instances without the music service', async () => {
+		const {room, getSession, ensureAvailable} = setup({ensureAvailable: async () => false});
+		await flush();
+		room.emit(RoomEvent.Reconnected);
+		room.emit(RoomEvent.ParticipantConnected, {identity: 'music_1'});
+		await flush();
+		expect(ensureAvailable).toHaveBeenCalledTimes(3);
+		expect(getSession).not.toHaveBeenCalled();
+	});
+
+	it('waits for an in-flight availability check before fetching the session', async () => {
+		let release!: (available: boolean) => void;
+		const pending = new Promise<boolean>((resolve) => (release = resolve));
+		const session = {guildId: 'g1', channelId: '1', revision: 7} as MusicSessionState;
+		const {getSession} = setup({session, ensureAvailable: () => pending});
+		await flush();
+		expect(getSession).not.toHaveBeenCalled();
+		release(true);
+		await flush();
+		expect(getSession).toHaveBeenCalledTimes(1);
+		expect(MusicStore.sessionByChannel.get('1')?.revision).toBe(7);
+	});
+
+	it('does not fetch the session when left during the availability check', async () => {
+		let release!: (available: boolean) => void;
+		const pending = new Promise<boolean>((resolve) => (release = resolve));
+		const {getSession, dispose} = setup({ensureAvailable: () => pending});
+		dispose();
+		release(true);
+		await flush();
+		expect(getSession).not.toHaveBeenCalled();
 	});
 
 	it('waits for the connection before fetching the initial state', async () => {

@@ -46,6 +46,8 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 			setStatus(await getSpotifyStatus());
 		} catch (statusError) {
 			setError(MusicStore.describeMusicError(statusError));
+			// Without a first answer the section would say "Verificando…" forever with Conectar disabled.
+			setStatus((current) => current ?? {connected: false, displayName: null});
 		}
 	}, []);
 
@@ -157,7 +159,9 @@ export const SpotifyConnectionSection: React.FC = observer(() => {
 						{status == null
 							? 'Verificando…'
 							: connected
-								? `Conectado como ${status.displayName ?? ''}`.trim()
+								? status.displayName
+									? `Conectado como ${status.displayName}`
+									: 'Conectado'
 								: 'Não conectado'}
 					</span>
 					<div className={styles.actions} data-flx="music.spotify-connection.actions">

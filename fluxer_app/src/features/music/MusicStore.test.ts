@@ -2,7 +2,7 @@
 
 import {MusicApiError, type MusicSessionState, parseSessionState} from '@app/features/music/MusicApi';
 import MusicStore from '@app/features/music/MusicStore';
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 vi.mock('@app/features/app/state/RuntimeConfig', () => ({default: {webAppEndpoint: 'http://localhost'}}));
 vi.mock('@app/features/platform/state/AuthSession', () => ({default: {token: null}}));
@@ -37,6 +37,12 @@ function makeState(overrides: Partial<MusicSessionState> = {}): MusicSessionStat
 describe('MusicStore', () => {
 	beforeEach(() => {
 		MusicStore.clearChannel('c1');
+		// The fixtures measure positions at t=1_000_000; keep the local clock there.
+		vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it('applyState ignores older revisions', () => {
@@ -95,6 +101,31 @@ describe('MusicStore', () => {
 		expect(MusicStore.commandError).toBeNull();
 	});
 
+	it('rebases positionAt to local time when the server clock is skewed', () => {
+		const now = Date.now();
+		MusicStore.applyState(makeState({channelId: 'skew', positionMs: 30_000, positionAt: now + 60_000}));
+		const skewed = MusicStore.sessionByChannel.get('skew');
+		expect(skewed?.positionMs).toBe(30_000);
+		expect(skewed?.positionAt).toBe(now);
+
+		MusicStore.applyState(makeState({channelId: 'close', positionAt: now - 2_000}));
+		expect(MusicStore.sessionByChannel.get('close')?.positionAt).toBe(now - 2_000);
+	});
+
+	it('clears the command error when the panel closes', async () => {
+		MusicStore.openPanel();
+		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
+		expect(MusicStore.commandError).not.toBeNull();
+		MusicStore.closePanel();
+		expect(MusicStore.commandError).toBeNull();
+
+		MusicStore.openPanel();
+		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
+		MusicStore.togglePanel();
+		expect(MusicStore.panelOpen).toBe(false);
+		expect(MusicStore.commandError).toBeNull();
+	});
+
 	it('currentPositionMs is 0 without a session', () => {
 		expect(MusicStore.currentPositionMs('nope')).toBe(0);
 	});
@@ -105,6 +136,73 @@ describe('MusicStore', () => {
 		);
 		expect(MusicStore.describeMusicError(new MusicApiError(502, 'LIVEKIT_UNREACHABLE', 'x'))).not.toBe('x');
 		expect(MusicStore.describeMusicError(new MusicApiError(418, 'WEIRD', 'raw message'))).toBe('raw message');
+	});
+});
+
+describe('MusicStore.checkAvailability', () => {
+	const healthy = () => new Response(JSON.stringify({service: 'fluxer-music', version: 1}), {status: 200});
+	const html = () => new Response('<html></html>', {status: 200, headers: {'Content-Type': 'text/html'}});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("re-check keeps 'available' (one failed probe does not hide the feature)", async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => healthy()),
+		);
+		await MusicStore.checkAvailability(true);
+		expect(MusicStore.availability).toBe('available');
+
+		let release!: () => void;
+		const fetchMock = vi.fn(() => new Promise<Response>((resolve) => (release = () => resolve(html()))));
+		vi.stubGlobal('fetch', fetchMock);
+		const recheck = MusicStore.checkAvailability(true);
+		// Never flips to 'checking' once known, so the UI does not unmount mid re-check.
+		expect(MusicStore.availability).toBe('available');
+		release();
+		await recheck;
+		expect(MusicStore.availability).toBe('available');
+
+		// A second consecutive failure downgrades.
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => html()),
+		);
+		await MusicStore.checkAvailability(true);
+		expect(MusicStore.availability).toBe('unavailable');
+
+		// A success brings it back and resets the failure count.
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => healthy()),
+		);
+		await MusicStore.checkAvailability(true);
+		expect(MusicStore.availability).toBe('available');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => html()),
+		);
+		await MusicStore.checkAvailability(true);
+		expect(MusicStore.availability).toBe('available');
+	});
+
+	it('concurrent callers await the same check', async () => {
+		let release!: () => void;
+		const fetchMock = vi.fn(() => new Promise<Response>((resolve) => (release = () => resolve(healthy()))));
+		vi.stubGlobal('fetch', fetchMock);
+		const first = MusicStore.checkAvailability(true);
+		let secondDone = false;
+		const second = MusicStore.checkAvailability(true).then(() => {
+			secondDone = true;
+		});
+		await Promise.resolve();
+		expect(secondDone).toBe(false);
+		release();
+		await Promise.all([first, second]);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(MusicStore.availability).toBe('available');
 	});
 });
 
