@@ -32,9 +32,6 @@ import GuildMatureContentAgree, {MatureContentGateReason} from '@app/features/gu
 import Guilds from '@app/features/guild/state/Guilds';
 import GuildVerification from '@app/features/guild/state/GuildVerification';
 import {useMemberListVisible} from '@app/features/member/hooks/useMemberListVisible';
-import {isMusicPanelShown} from '@app/features/music/MusicCall';
-import {MusicCallSidePanel} from '@app/features/music/MusicCallSidePanel';
-import {MusicPanel} from '@app/features/music/MusicPanel';
 import Permission from '@app/features/permissions/state/Permission';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import ReadStates from '@app/features/read_state/state/ReadStates';
@@ -439,7 +436,6 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 	if (isVoiceChannel) {
 		const isVoiceTextSplitView = isPwaVoiceTextSplitLayout && !isVoiceTextCallExpanded;
 		const shouldRenderMemberList = isMemberListVisible && !isMobileLayout && !isSearchActive;
-		const shouldRenderMusicPanel = !isVoiceTextCallExpanded && isMusicPanelShown(channelId);
 		const compactVoiceCallHeaderSupplement = isConnectedToThisChannel ? (
 			<CompactVoiceCallStreamHeaderInfo
 				channel={channel}
@@ -459,11 +455,6 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 						fullscreenRequestNonce={voiceCallFullscreenRequestNonce}
 						onCloseFullscreenView={handleCollapseVoiceTextCallFullscreen}
 						data-flx="channel.channel-view.guild-channel-view.voice-call-view"
-					/>
-					<MusicCallSidePanel
-						channel={channel}
-						enabled
-						data-flx="channel.channel-view.guild-channel-view.music-call-side-panel"
 					/>
 				</div>
 			);
@@ -515,11 +506,6 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 							reserveHeaderChrome={isConnectedToThisChannel}
 							data-flx="channel.channel-view.guild-channel-view.channel-compact-call-surface--2"
 						/>
-						<MusicCallSidePanel
-							channel={channel}
-							enabled={isVoiceTextCallExpanded}
-							data-flx="channel.channel-view.guild-channel-view.music-call-side-panel--2"
-						/>
 					</div>
 				}
 				chatArea={
@@ -548,8 +534,6 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 								data-flx="channel.channel-view.guild-channel-view.channel-search-results"
 							/>
 						</div>
-					) : shouldRenderMusicPanel ? (
-						<MusicPanel channel={channel} data-flx="channel.channel-view.guild-channel-view.music-panel" />
 					) : shouldRenderMemberList ? (
 						<ChannelMembers
 							channel={channel}
@@ -558,7 +542,7 @@ export const GuildChannelView = observer(({channelId, guildId}: GuildChannelView
 						/>
 					) : null
 				}
-				showMemberListDivider={shouldRenderMemberList && !isSearchActive && !shouldRenderMusicPanel}
+				showMemberListDivider={shouldRenderMemberList && !isSearchActive}
 				chatAreaInert={isVoiceTextCallExpanded}
 				data-flx="channel.channel-view.guild-channel-view.channel-grid-voice-call"
 			/>

@@ -2,9 +2,22 @@
 
 .tab {
 	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+.scroller {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.scrollContent {
+	display: flex;
 	flex-direction: column;
 	gap: var(--spacing-3);
-	min-width: 0;
+	padding: var(--spacing-3);
 }
 
 .section {
@@ -131,6 +144,7 @@
 }
 
 .footer {
-	padding-top: var(--spacing-2);
+	flex: 0 0 auto;
+	padding: var(--spacing-2) var(--spacing-3) var(--spacing-3);
 	border-top: 0.0625rem solid var(--background-modifier-hover);
 }

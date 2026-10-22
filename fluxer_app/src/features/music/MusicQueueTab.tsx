@@ -2,6 +2,7 @@
 
 // "Fila" tab of the music UI: the users' queue (reorderable), the recommended items that
 // follow it (dimmed, not reorderable), the Spotify radio notice and "Encerrar música".
+// Only the lists scroll: "Encerrar música" stays pinned at the bottom of the balloon.
 
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
 import {
@@ -19,6 +20,7 @@ import MusicStore from '@app/features/music/MusicStore';
 import {Button} from '@app/features/ui/button/Button';
 import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
+import {Scroller} from '@app/features/ui/components/Scroller';
 import {DotsSixVerticalIcon, XIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
@@ -201,45 +203,49 @@ export const MusicQueueTab = observer(function MusicQueueTab({
 
 	return (
 		<div className={styles.tab} data-flx="music.music-queue-tab">
-			<section className={styles.section} aria-label="Fila" data-flx="music.music-queue-tab.queue">
-				{user.length === 0 ? (
-					<p className={styles.muted} data-flx="music.music-queue-tab.empty">
-						A fila está vazia.
-					</p>
-				) : (
-					<ul className={styles.list} data-flx="music.music-queue-tab.list">
-						{user.map((item, index) => (
-							<UserRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
-						))}
-					</ul>
-				)}
-			</section>
-			{recommended.length > 0 && (
-				<section
-					className={styles.section}
-					aria-label="A seguir — recomendadas"
-					data-flx="music.music-queue-tab.recommended"
-				>
-					<h3 className={styles.sectionTitle} data-flx="music.music-queue-tab.recommended.title">
-						A seguir — recomendadas
-					</h3>
-					<ul className={styles.list} data-flx="music.music-queue-tab.recommended.list">
-						{recommended.map((item) => (
-							<RecommendedRow key={item.id} item={item} session={session} run={run} pending={pending} />
-						))}
-					</ul>
-				</section>
-			)}
-			{showRadioNotice(session) && (
-				<p className={styles.radioNotice} data-flx="music.music-queue-tab.radio-notice">
-					Rádio do Spotify: as próximas aparecem quando tocarem
-				</p>
-			)}
-			{overflow && (
-				<p className={styles.muted} data-flx="music.music-queue-tab.overflow">
-					{overflow}
-				</p>
-			)}
+			<Scroller className={styles.scroller} fade data-flx="music.music-queue-tab.scroller">
+				<div className={styles.scrollContent} data-flx="music.music-queue-tab.scroll-content">
+					<section className={styles.section} aria-label="Fila" data-flx="music.music-queue-tab.queue">
+						{user.length === 0 ? (
+							<p className={styles.muted} data-flx="music.music-queue-tab.empty">
+								A fila está vazia.
+							</p>
+						) : (
+							<ul className={styles.list} data-flx="music.music-queue-tab.list">
+								{user.map((item, index) => (
+									<UserRow key={item.id} item={item} index={index} session={session} run={run} pending={pending} />
+								))}
+							</ul>
+						)}
+					</section>
+					{recommended.length > 0 && (
+						<section
+							className={styles.section}
+							aria-label="A seguir — recomendadas"
+							data-flx="music.music-queue-tab.recommended"
+						>
+							<h3 className={styles.sectionTitle} data-flx="music.music-queue-tab.recommended.title">
+								A seguir — recomendadas
+							</h3>
+							<ul className={styles.list} data-flx="music.music-queue-tab.recommended.list">
+								{recommended.map((item) => (
+									<RecommendedRow key={item.id} item={item} session={session} run={run} pending={pending} />
+								))}
+							</ul>
+						</section>
+					)}
+					{showRadioNotice(session) && (
+						<p className={styles.radioNotice} data-flx="music.music-queue-tab.radio-notice">
+							Rádio do Spotify: as próximas aparecem quando tocarem
+						</p>
+					)}
+					{overflow && (
+						<p className={styles.muted} data-flx="music.music-queue-tab.overflow">
+							{overflow}
+						</p>
+					)}
+				</div>
+			</Scroller>
 			<footer className={styles.footer} data-flx="music.music-queue-tab.footer">
 				<Button
 					variant="danger"

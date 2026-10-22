@@ -1,0 +1,91 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* 340px wide, at most min(560px, 70vh) tall; only the tab's list scrolls inside. */
+.balloon {
+	display: flex;
+	flex-direction: column;
+	width: 21.25rem;
+	max-width: calc(100vw - 1.5rem);
+	max-height: min(35rem, 70vh);
+	overflow: hidden;
+	box-sizing: border-box;
+	border: 0.0625rem solid var(--background-modifier-accent);
+	border-radius: 0.5rem;
+	background-color: var(--form-surface-background);
+	color: var(--text-primary);
+}
+
+.header {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-2);
+	padding: var(--spacing-2) var(--spacing-2) 0 var(--spacing-3);
+	border-bottom: 0.0625rem solid var(--background-modifier-accent);
+}
+
+.tabs {
+	display: flex;
+	gap: var(--spacing-3);
+	min-width: 0;
+}
+
+.tab {
+	padding: var(--spacing-1) 0 var(--spacing-2);
+	border: none;
+	border-bottom: 0.125rem solid transparent;
+	background: transparent;
+	color: var(--text-primary-muted);
+	font-size: 0.875rem;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.tab:hover:not(.tabActive) {
+	color: var(--text-primary);
+}
+
+.tabActive {
+	border-bottom-color: var(--brand-primary);
+	color: var(--text-primary);
+}
+
+.messages {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	padding: var(--spacing-2) var(--spacing-3) 0;
+}
+
+.error {
+	margin: 0;
+	color: var(--status-danger);
+	font-size: 0.875rem;
+}
+
+.notice {
+	margin: 0;
+	padding: var(--spacing-2) var(--spacing-3);
+	border-radius: var(--radius-lg);
+	background-color: var(--background-tertiary);
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	line-height: 1.4;
+}
+
+.body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.muted {
+	margin: 0;
+	padding: var(--spacing-3);
+	color: var(--text-primary-muted);
+	font-size: 0.875rem;
+}

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// Presentational pieces shared by the music panel and its tabs.
+// Presentational pieces shared by the music balloon, its tabs and the now-playing parts.
 
 import type {MusicSource} from '@app/features/music/MusicApi';
 import styles from '@app/features/music/MusicParts.module.css';

@@ -7,6 +7,7 @@ import {
 	type MusicGuildSession,
 	type MusicSessionState,
 } from '@app/features/music/MusicApi';
+import MusicBalloonState from '@app/features/music/MusicBalloonState';
 import {createMusicCommandRunner} from '@app/features/music/MusicPanelStateMachine';
 import {makeAutoObservable, runInAction} from 'mobx';
 
@@ -42,17 +43,16 @@ class MusicStore {
 	availability: MusicAvailability = 'unknown';
 	sessionByChannel = new Map<string, MusicSessionState>();
 	guildSessions = new Map<string, Array<MusicGuildSession>>();
-	panelOpen = false;
-	/** Text of the panel's search field, kept here so it survives the panel remounting. */
+	/** Text of the balloon's search field, kept here so it survives the balloon remounting. */
 	searchText = '';
-	/** A panel command (skip, pause, queue edits, stop) is in flight. */
+	/** A balloon command (skip, pause, queue edits, stop) is in flight. */
 	commandPending = false;
-	/** Error of the last panel command, ready to show. */
+	/** Error of the last balloon command, ready to show. */
 	commandError: string | null = null;
 	private lastCheckAt = 0;
 	private checkInFlight: Promise<void> | null = null;
 	private consecutiveFailures = 0;
-	// Held here, not in the panel, so a panel remount mid-command still blocks a second one.
+	// Held here, not in the balloon, so a balloon remount mid-command still blocks a second one.
 	private readonly commandRunner = createMusicCommandRunner<MusicSessionState>({
 		apply: (state) => this.applyState(state),
 		onError: (error) =>
@@ -137,29 +137,21 @@ class MusicStore {
 	/**
 	 * Runs one command at a time and applies the state it returns; false if ignored or failed.
 	 * An arrow, not a method: it is excluded from MobX's annotations (so autoBind skips it)
-	 * and the panel holds it detached (`const run = MusicStore.runCommand`).
+	 * and the balloon holds it detached (`const run = MusicStore.runCommand`).
 	 */
 	readonly runCommand = (command: () => Promise<MusicSessionState | null>): Promise<boolean> =>
 		this.commandRunner.run(command);
 
-	togglePanel(): void {
-		if (this.panelOpen) this.closePanel();
-		else this.panelOpen = true;
-	}
-
-	openPanel(): void {
-		this.panelOpen = true;
-	}
-
-	closePanel(): void {
-		this.panelOpen = false;
+	/** The balloon closed: its error is not shown again when it reopens. */
+	clearCommandError(): void {
 		this.commandError = null;
 	}
 
 	/** The call ended or moved to another channel (MusicPanelAutoClose). */
 	handleCallLeft(): void {
 		this.commandRunner.reset();
-		this.closePanel();
+		this.commandError = null;
+		MusicBalloonState.close();
 	}
 
 	/** Logout or account switch (PooledGatewayConnection.resetEphemeralForegroundStates). */

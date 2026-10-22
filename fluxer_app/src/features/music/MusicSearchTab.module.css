@@ -1,8 +1,25 @@
 .tab {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
 	gap: var(--spacing-2);
 	min-width: 0;
+	min-height: 0;
+	padding: var(--spacing-3) var(--spacing-3) 0;
+}
+
+/* Only the results scroll; the field and the source switch stay put. */
+.scroller {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin: 0 calc(-1 * var(--spacing-3));
+}
+
+.scrollContent {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	padding: 0 var(--spacing-3) var(--spacing-3);
 }
 
 .switch {

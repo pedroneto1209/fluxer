@@ -26,6 +26,7 @@ import {Button} from '@app/features/ui/button/Button';
 import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Input} from '@app/features/ui/components/form/FormInput';
+import {Scroller} from '@app/features/ui/components/Scroller';
 import FocusRing from '@app/features/ui/focus_ring/FocusRing';
 import {Tooltip} from '@app/features/ui/tooltip/Tooltip';
 import {MagnifyingGlassIcon, PlusIcon} from '@phosphor-icons/react';
@@ -208,49 +209,53 @@ export const MusicSearchTab = observer(function MusicSearchTab({
 					</FocusRing>
 				))}
 			</div>
-			{session == null && status.kind === 'idle' && (
-				<p className={styles.muted} data-flx="music.music-search-tab.start-hint">
-					Adicione uma música para começar
-				</p>
-			)}
-			{status.kind === 'loading' && (
-				<p className={styles.muted} data-flx="music.music-search-tab.loading">
-					Buscando…
-				</p>
-			)}
-			{status.kind === 'error' && (
-				<p className={styles.error} role="alert" data-flx="music.music-search-tab.error">
-					{status.message}
-				</p>
-			)}
-			{visible?.spotifyUnavailable && (
-				<div className={styles.notice} data-flx="music.music-search-tab.spotify-unavailable">
-					<p className={styles.noticeText} data-flx="music.music-search-tab.spotify-unavailable.text">
-						Conecte sua conta do Spotify para buscar músicas do Spotify.
-					</p>
-					<Button small onClick={openLinkedAccounts} data-flx="music.music-search-tab.spotify-unavailable.connect">
-						Conectar Spotify
-					</Button>
-				</div>
-			)}
-			{visible &&
-				!visible.spotifyUnavailable &&
-				(visible.tracks.length === 0 ? (
-					<p className={styles.muted} data-flx="music.music-search-tab.empty">
-						Nada encontrado.
-					</p>
-				) : (
-					<ul className={styles.list} data-flx="music.music-search-tab.list">
-						{visible.tracks.map((track) => (
-							<ResultRow
-								key={`${track.source}:${track.sourceId}`}
-								track={track}
-								onAdd={handleAddTrack}
-								adding={pending}
-							/>
+			<Scroller className={styles.scroller} fade data-flx="music.music-search-tab.scroller">
+				<div className={styles.scrollContent} data-flx="music.music-search-tab.scroll-content">
+					{session == null && status.kind === 'idle' && (
+						<p className={styles.muted} data-flx="music.music-search-tab.start-hint">
+							Adicione uma música para começar
+						</p>
+					)}
+					{status.kind === 'loading' && (
+						<p className={styles.muted} data-flx="music.music-search-tab.loading">
+							Buscando…
+						</p>
+					)}
+					{status.kind === 'error' && (
+						<p className={styles.error} role="alert" data-flx="music.music-search-tab.error">
+							{status.message}
+						</p>
+					)}
+					{visible?.spotifyUnavailable && (
+						<div className={styles.notice} data-flx="music.music-search-tab.spotify-unavailable">
+							<p className={styles.noticeText} data-flx="music.music-search-tab.spotify-unavailable.text">
+								Conecte sua conta do Spotify para buscar músicas do Spotify.
+							</p>
+							<Button small onClick={openLinkedAccounts} data-flx="music.music-search-tab.spotify-unavailable.connect">
+								Conectar Spotify
+							</Button>
+						</div>
+					)}
+					{visible &&
+						!visible.spotifyUnavailable &&
+						(visible.tracks.length === 0 ? (
+							<p className={styles.muted} data-flx="music.music-search-tab.empty">
+								Nada encontrado.
+							</p>
+						) : (
+							<ul className={styles.list} data-flx="music.music-search-tab.list">
+								{visible.tracks.map((track) => (
+									<ResultRow
+										key={`${track.source}:${track.sourceId}`}
+										track={track}
+										onAdd={handleAddTrack}
+										adding={pending}
+									/>
+								))}
+							</ul>
 						))}
-					</ul>
-				))}
+				</div>
+			</Scroller>
 		</section>
 	);
 });

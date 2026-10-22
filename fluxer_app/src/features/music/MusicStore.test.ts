@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {MusicApiError, type MusicSessionState, parseSessionState} from '@app/features/music/MusicApi';
+import {MUSIC_BALLOON_KEY} from '@app/features/music/MusicBalloonState';
 import MusicStore from '@app/features/music/MusicStore';
+import * as PopoutCommands from '@app/features/ui/commands/PopoutCommands';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 vi.mock('@app/features/app/state/RuntimeConfig', () => ({default: {webAppEndpoint: 'http://localhost'}}));
 vi.mock('@app/features/platform/state/AuthSession', () => ({default: {token: null}}));
+vi.mock('@app/features/ui/commands/PopoutCommands', () => ({close: vi.fn()}));
 
 function makeState(overrides: Partial<MusicSessionState> = {}): MusicSessionState {
 	return {
@@ -88,22 +91,12 @@ describe('MusicStore', () => {
 		expect(MusicStore.currentPositionMs('c1', 1_300_000)).toBe(310_000);
 	});
 
-	it('opens, closes and toggles the panel', () => {
-		MusicStore.closePanel();
-		expect(MusicStore.panelOpen).toBe(false);
-		MusicStore.openPanel();
-		MusicStore.openPanel();
-		expect(MusicStore.panelOpen).toBe(true);
-		MusicStore.togglePanel();
-		expect(MusicStore.panelOpen).toBe(false);
-	});
-
-	it('runs a command when the panel holds runCommand detached', async () => {
+	it('runs a command when the balloon holds runCommand detached', async () => {
 		const run = MusicStore.runCommand;
 		await expect(run(async () => null)).resolves.toBe(true);
 	});
 
-	it('runs one command at a time across panel remounts and keeps its error', async () => {
+	it('runs one command at a time across balloon remounts and keeps its error', async () => {
 		let resolve!: (state: MusicSessionState) => void;
 		const skip = vi.fn(() => new Promise<MusicSessionState>((res) => (resolve = res)));
 		const first = MusicStore.runCommand(skip);
@@ -131,28 +124,21 @@ describe('MusicStore', () => {
 		expect(MusicStore.sessionByChannel.get('close')?.positionAt).toBe(now - 2_000);
 	});
 
-	it('clears the command error when the panel closes', async () => {
-		MusicStore.openPanel();
+	it('clears the command error when the balloon closes', async () => {
 		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
 		expect(MusicStore.commandError).not.toBeNull();
-		MusicStore.closePanel();
-		expect(MusicStore.commandError).toBeNull();
-
-		MusicStore.openPanel();
-		await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
-		MusicStore.togglePanel();
-		expect(MusicStore.panelOpen).toBe(false);
+		MusicStore.clearCommandError();
 		expect(MusicStore.commandError).toBeNull();
 	});
 
 	it('forgets the command state when the call is left or the session ends', async () => {
 		for (const reset of [() => MusicStore.handleCallLeft(), () => MusicStore.handleLogout()]) {
-			MusicStore.openPanel();
+			vi.mocked(PopoutCommands.close).mockClear();
 			await MusicStore.runCommand(() => Promise.reject(new MusicApiError(409, 'QUEUE_FULL', 'full')));
 			const hanging = MusicStore.runCommand(() => new Promise<MusicSessionState>(() => {}));
 			expect(MusicStore.commandPending).toBe(true);
 			reset();
-			expect(MusicStore.panelOpen).toBe(false);
+			expect(PopoutCommands.close).toHaveBeenCalledWith(MUSIC_BALLOON_KEY);
 			expect(MusicStore.commandPending).toBe(false);
 			expect(MusicStore.commandError).toBeNull();
 			void hanging;

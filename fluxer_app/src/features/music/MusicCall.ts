@@ -10,7 +10,7 @@ import MobileLayout from '@app/features/ui/state/MobileLayout';
 import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
 import {isVoiceMeshRoom} from '@app/features/voice/engine/mesh/VoiceMeshRoom';
 
-/** True when the music button and panel may be shown (optionally: for this channel's call). */
+/** True when the music button and balloon may be shown (optionally: for this channel's call). */
 export function isMusicUsableInCall(channelId?: string): boolean {
 	const room = MediaEngine.room;
 	const connectedChannelId = MediaEngine.channelId;
@@ -25,14 +25,10 @@ export function isMusicUsableInCall(channelId?: string): boolean {
 	});
 }
 
-export function isMusicPanelShown(channelId: string): boolean {
-	return MusicStore.panelOpen && isMusicUsableInCall(channelId);
-}
-
 let autoCloseInstalled = false;
 
 /**
- * Closes the panel and drops its command state when the call ends or changes channel.
+ * Closes the balloon and drops its command state when the call ends or changes channel.
  * Installed from VoiceLiveKitRoot, which is mounted for the whole call. Safe to call many times.
  */
 export function ensureMusicPanelAutoClose(): void {

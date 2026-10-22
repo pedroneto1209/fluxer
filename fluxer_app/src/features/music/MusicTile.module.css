@@ -17,10 +17,6 @@
 	color: var(--voice-text-strong);
 }
 
-.clickable {
-	cursor: pointer;
-}
-
 .backdrop {
 	position: absolute;
 	inset: -10%;

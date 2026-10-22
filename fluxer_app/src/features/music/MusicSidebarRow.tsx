@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // "🎵 Música · <title>" under a voice channel in the sidebar, visible to the whole community.
-// Click goes to the channel; inside that call the context menu has the music volume and mute.
+// Inside that call the click opens the music balloon to its right and the context menu has
+// the music volume and mute; elsewhere the click goes to the channel.
 
 import type {Channel} from '@app/features/channel/models/Channel';
+import {MusicBalloonPopout} from '@app/features/music/MusicBalloon';
+import {isMusicUsableInCall} from '@app/features/music/MusicCall';
 import {musicRowLabel, pickSidebarMusic} from '@app/features/music/MusicSidebarLabel';
 import {ensureMusicSidebarPolling} from '@app/features/music/MusicSidebarPolling';
 import styles from '@app/features/music/MusicSidebarRow.module.css';
@@ -63,6 +66,15 @@ export const MusicSidebarRow = observer(function MusicSidebarRow({
 		[channel.id],
 	);
 	if (!music) return null;
+	if (inCall && isMusicUsableInCall(channel.id)) {
+		return (
+			<MusicBalloonPopout channel={channel} position="right" data-flx="music.sidebar-row.balloon-popout">
+				<button type="button" className={styles.row} onContextMenu={handleContextMenu} data-flx="music.sidebar-row.row">
+					{musicRowLabel(music.title)}
+				</button>
+			</MusicBalloonPopout>
+		);
+	}
 	return (
 		<button
 			type="button"
