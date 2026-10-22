@@ -134,10 +134,13 @@ class MusicStore {
 		return duration > 0 ? Math.min(position, duration) : position;
 	}
 
-	/** Runs one command at a time and applies the state it returns; false if ignored or failed. */
-	runCommand(command: () => Promise<MusicSessionState | null>): Promise<boolean> {
-		return this.commandRunner.run(command);
-	}
+	/**
+	 * Runs one command at a time and applies the state it returns; false if ignored or failed.
+	 * An arrow, not a method: it is excluded from MobX's annotations (so autoBind skips it)
+	 * and the panel holds it detached (`const run = MusicStore.runCommand`).
+	 */
+	readonly runCommand = (command: () => Promise<MusicSessionState | null>): Promise<boolean> =>
+		this.commandRunner.run(command);
 
 	togglePanel(): void {
 		if (this.panelOpen) this.closePanel();

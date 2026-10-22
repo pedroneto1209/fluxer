@@ -4,6 +4,7 @@ import styles from '@app/features/app/components/layout/GroupedVoiceParticipant.
 import {VoiceParticipantItem} from '@app/features/app/components/layout/VoiceParticipantItem';
 import {VoiceStateIcons} from '@app/features/app/components/layout/VoiceStateIcons';
 import {useContextMenuHoverState} from '@app/features/app/hooks/useContextMenuHoverState';
+import {VoiceRowAttentionButton} from '@app/features/attention/AttentionButton';
 import {PreloadableUserPopout} from '@app/features/channel/components/PreloadableUserPopout';
 import type {VoiceState} from '@app/features/gateway/types/GatewayVoiceTypes';
 import {isKeyboardActivationKey} from '@app/features/input/utils/KeyboardUtils';
@@ -334,6 +335,7 @@ export const GroupedVoiceParticipant = observer(function GroupedVoiceParticipant
 								data-flx="app.grouped-voice-participant.flex-shrink-zero"
 							/>
 						</div>
+						<VoiceRowAttentionButton user={user} channelId={voiceStates[0]?.channel_id ?? null} />
 					</div>
 				</StreamWatchHoverPopout>
 			</PreloadableUserPopout>

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
+import {AttentionBlockMenuItem} from '@app/features/attention/AttentionBlockMenuItem';
 import Authentication from '@app/features/auth/state/Authentication';
 import * as ChannelCommands from '@app/features/channel/commands/ChannelCommands';
 import * as PrivateChannelCommands from '@app/features/channel/commands/PrivateChannelCommands';
@@ -268,6 +269,7 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = observer(
 							data-flx="ui.action-menu.user-context-menu.render-report-actions.report-message-menu-item"
 						/>
 					)}
+					<AttentionBlockMenuItem user={user} />
 					{relationshipType === RelationshipTypes.BLOCKED ? (
 						<UnblockUserMenuItem
 							user={user}

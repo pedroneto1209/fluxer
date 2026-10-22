@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {LongPressable} from '@app/features/app/components/LongPressable';
+import {VoiceRowAttentionButton} from '@app/features/attention/AttentionButton';
 import channelItemSurfaceStyles from '@app/features/app/components/layout/ChannelItemSurface.module.css';
 import {DragItemType} from '@app/features/app/components/layout/types/DndTypes';
 import styles from '@app/features/app/components/layout/VoiceParticipantItem.module.css';
@@ -285,6 +286,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 						/>
 					</div>
 				)}
+				{!isGroupedItem && <VoiceRowAttentionButton user={user} channelId={currentChannelId} />}
 			</LongPressable>
 		</FocusRing>
 	);

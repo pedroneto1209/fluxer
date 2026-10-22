@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {LongPressable} from '@app/features/app/components/LongPressable';
-import {AttentionButton} from '@app/features/attention/AttentionButton';
 import Channels from '@app/features/channel/state/Channels';
 import {WATCH_STREAM_DESCRIPTOR} from '@app/features/i18n/utils/CommonMessageDescriptors';
 import {isKeyboardActivationKey} from '@app/features/input/utils/KeyboardUtils';
@@ -327,8 +326,6 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 	const isScreenShare = asVoiceTrackSource(trackRef.source) === VoiceTrackSource.ScreenShare;
 	const popoutScope = useContext(VoicePopoutScopeContext);
 	const isInsideTilePopout = popoutScope === 'tile';
-	const showAttentionButton =
-		!isLocalParticipant && !isScreenShare && !isInsideTilePopout && participantUser != null && !participantUser.bot;
 	const tilePopoutKey = getVoiceTilePopoutKey(identity, isScreenShare ? 'screen_share' : 'camera');
 	const isTilePoppedOut = popoutScope !== 'tile' && PopoutWindowManager.isOpen(tilePopoutKey);
 	const tilePopoutTransition = usePoppedOutTransition(isTilePoppedOut);
@@ -1040,11 +1037,6 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 					tabIndex={isInsideTilePopout ? undefined : 0}
 				>
 					{mediaNode}
-					{showAttentionButton && participantUser && (
-						<span className={styles.attentionCorner} data-flx="voice.voice-participant-tile.attention-corner">
-							<AttentionButton user={participantUser} />
-						</span>
-					)}
 					{isScreenShareBuffering &&
 						!isFocusedPlaceholderTile &&
 						screenShareBufferingPresentation === 'last-frame' &&

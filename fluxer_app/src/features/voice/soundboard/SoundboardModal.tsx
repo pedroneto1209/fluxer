@@ -8,6 +8,7 @@ import * as ModalCommands from '@app/features/ui/commands/ModalCommands';
 import {modal} from '@app/features/ui/commands/ModalCommands';
 import {Input} from '@app/features/ui/components/form/FormInput';
 import {useMediaEngineVersion} from '@app/features/voice/engine/MediaEngineFacade';
+import {MicFlipSettings} from '@app/features/voice/mic_flip/MicFlipSettings';
 import type {SoundboardSound} from '@app/features/voice/soundboard/SoundboardApi';
 import styles from '@app/features/voice/soundboard/SoundboardModal.module.css';
 import SoundboardStore, {describeSoundboardError} from '@app/features/voice/soundboard/SoundboardStore';
@@ -177,8 +178,8 @@ const AddSoundForm = observer(({guildId, onDone}: {guildId: string; onDone: () =
 				</div>
 			</div>
 			<p className={styles.hint} data-flx="voice.soundboard.add-form.hint">
-				MP3, OGG, WAV, M4A, WebM or FLAC, up to {maxSeconds} seconds and {maxKilobytes} KB. Everyone in this
-				community can play it.
+				MP3, OGG, WAV, M4A, WebM or FLAC, up to {maxSeconds} seconds and {maxKilobytes} KB. Everyone in this community
+				can play it.
 			</p>
 			{error && (
 				<p className={styles.error} role="alert" data-flx="voice.soundboard.add-form.error">
@@ -356,6 +357,7 @@ const SoundboardModal = observer((_props: {'data-flx'?: string}) => {
 						))}
 					</div>
 				)}
+				<MicFlipSettings guildId={guildId} sounds={sounds} />
 			</>
 		);
 	}
