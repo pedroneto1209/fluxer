@@ -32,7 +32,12 @@ function PeekRow({track}: {track: PeekTrack}) {
 					{track.artist}
 				</span>
 			</span>
-			<SourceTag source={track.source} recommended={track.recommended} data-flx="music.peek-balloon.up-next-tag" />
+			<SourceTag
+				source={track.source}
+				recommended={track.recommended}
+				recommendedLabel="recomendada"
+				data-flx="music.peek-balloon.up-next-tag"
+			/>
 		</li>
 	);
 }

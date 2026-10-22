@@ -79,10 +79,12 @@ export function Artwork({
 export function SourceTag({
 	source,
 	recommended,
+	recommendedLabel = 'Recomendada',
 	'data-flx': dataFlx,
 }: {
 	source: MusicSource;
 	recommended?: boolean;
+	recommendedLabel?: string;
 	'data-flx': string;
 }) {
 	return (
@@ -93,7 +95,7 @@ export function SourceTag({
 			)}
 			data-flx={dataFlx}
 		>
-			{recommended ? 'Recomendada' : SOURCE_LABEL[source]}
+			{recommended ? recommendedLabel : SOURCE_LABEL[source]}
 		</span>
 	);
 }

@@ -42,6 +42,12 @@ export class MusicVolumeState {
 		this.persist();
 	}
 
+	/** A volume slider moved by the user: also unmutes, so the slider is never stuck at 0 while muted. */
+	setVolumeUnmuted(volume: number): void {
+		if (this.muted) this.muted = false;
+		this.setVolume(volume);
+	}
+
 	toggleMuted(): void {
 		this.muted = !this.muted;
 		this.persist();

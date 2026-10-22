@@ -143,7 +143,7 @@ export const MusicMiniPlayer = observer(function MusicMiniPlayer() {
 						min={0}
 						max={100}
 						value={muted ? 0 : Math.round(volume * 100)}
-						onChange={(event) => MusicVolume.setVolume(Number(event.target.value) / 100)}
+						onChange={(event) => MusicVolume.setVolumeUnmuted(Number(event.target.value) / 100)}
 						className={styles.volumeSlider}
 						aria-label="Volume da música"
 						aria-valuetext={muted ? 'Mudo' : `${Math.round(volume * 100)}%`}

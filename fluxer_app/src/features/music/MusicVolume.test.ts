@@ -109,6 +109,26 @@ describe('MusicVolume', () => {
 		expect(music.track.setVolume).toHaveBeenCalledWith(0);
 	});
 
+	it('moving the volume slider while muted unmutes and applies the new volume', () => {
+		const storage = memoryStorage();
+		const state = new MusicVolumeState(() => storage);
+		state.toggleMuted();
+		state.setVolumeUnmuted(0.6);
+		expect(state.muted).toBe(false);
+		expect(state.volume).toBe(0.6);
+		const music = fakeParticipant('music_42');
+		state.applyToRoom(fakeRoom(music));
+		expect(music.track.setVolume).toHaveBeenCalledWith(0.6);
+		expect(new MusicVolumeState(() => storage).muted).toBe(false);
+	});
+
+	it('moving the volume slider while unmuted keeps it unmuted', () => {
+		const state = new MusicVolumeState(() => memoryStorage());
+		state.setVolumeUnmuted(0.3);
+		expect(state.muted).toBe(false);
+		expect(state.volume).toBe(0.3);
+	});
+
 	it('applyToRoom tolerates a null room and unsubscribed publications', () => {
 		const state = new MusicVolumeState(() => memoryStorage());
 		expect(() => state.applyToRoom(null)).not.toThrow();
