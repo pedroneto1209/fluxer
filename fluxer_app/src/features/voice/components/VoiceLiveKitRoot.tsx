@@ -4,6 +4,7 @@ import {AttentionOverlay} from '@app/features/attention/AttentionOverlay';
 import AttentionStore from '@app/features/attention/AttentionStore';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
+import MicFlipStore from '@app/features/voice/mic_flip/MicFlipStore';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
 import type {Room} from 'livekit-client';
 import type React from 'react';
@@ -35,12 +36,13 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 	useEffect(
 		() =>
 			ComponentBus.subscribe('SOUNDBOARD_TOGGLE', () => {
-				void import('@app/features/voice/soundboard/SoundboardModal').then(({toggleSoundboard}) =>
-					toggleSoundboard(),
-				);
+				void import('@app/features/voice/soundboard/SoundboardModal').then(({toggleSoundboard}) => toggleSoundboard());
 			}),
 		[],
 	);
+
+	// Watches a JBL headset's flip-to-mute boom mic, if one is plugged in.
+	useEffect(() => MicFlipStore.start(), []);
 
 	// Nudges ("chamar atenção") arrive as data messages in the call.
 	useEffect(() => (room ? AttentionStore.bindRoom(room) : undefined), [room]);
