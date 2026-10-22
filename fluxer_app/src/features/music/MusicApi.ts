@@ -5,6 +5,7 @@
 // with the caller's own token.
 
 import RuntimeConfig from '@app/features/app/state/RuntimeConfig';
+import {type MusicLyrics, parseLyrics} from '@app/features/music/MusicLyricsModel';
 import SessionManager from '@app/features/platform/state/AuthSession';
 
 export type MusicSource = 'spotify' | 'youtube';
@@ -229,6 +230,17 @@ export async function getSession(guildId: string, channelId: string): Promise<Mu
 		if (error instanceof MusicApiError && error.code === 'NO_SESSION') return null;
 		throw error;
 	}
+}
+
+export async function getLyrics(
+	guildId: string,
+	channelId: string,
+	source: string,
+	sourceId: string,
+): Promise<MusicLyrics> {
+	const query = `source=${encodeURIComponent(source)}&source_id=${encodeURIComponent(sourceId)}`;
+	const response = await request(`${channelPath(guildId, channelId)}/lyrics?${query}`);
+	return parseLyrics(await response.json());
 }
 
 export async function searchTracks(guildId: string, channelId: string, query: string): Promise<MusicSearchResult> {

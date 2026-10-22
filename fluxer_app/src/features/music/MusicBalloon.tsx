@@ -12,6 +12,7 @@ import MusicBalloonState, {
 	MUSIC_BALLOON_KEY,
 	type MusicBalloonTab,
 } from '@app/features/music/MusicBalloonState';
+import {MusicLyricsTab} from '@app/features/music/MusicLyricsViews';
 import {IconButton} from '@app/features/music/MusicParts';
 import {queueTabLabel} from '@app/features/music/MusicQueueModel';
 import {MusicQueueTab} from '@app/features/music/MusicQueueTab';
@@ -38,6 +39,7 @@ export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: 
 	const tabs: Array<{id: MusicBalloonTab; label: string}> = [
 		{id: 'queue', label: queueTabLabel(session)},
 		{id: 'search', label: 'Buscar'},
+		{id: 'lyrics', label: 'Letra'},
 	];
 
 	return (
@@ -89,6 +91,8 @@ export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: 
 							Nada tocando agora.
 						</p>
 					)
+				) : tab === 'lyrics' ? (
+					<MusicLyricsTab session={session} />
 				) : (
 					<MusicSearchTab session={session} channel={channel} run={run} pending={pending} />
 				)}

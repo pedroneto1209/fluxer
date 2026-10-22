@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// State of the music balloon (the popout with the "Fila" and "Buscar" tabs). Every trigger
+// State of the music balloon (the popout with the "Fila", "Buscar" and "Letra" tabs). Every trigger
 // opens the same popout key, so there is only ever one balloon.
 
 import type {MusicSessionState} from '@app/features/music/MusicApi';
@@ -10,7 +10,7 @@ import {makeAutoObservable} from 'mobx';
 
 export const MUSIC_BALLOON_KEY = 'fluxer.music.balloon';
 
-export type MusicBalloonTab = 'queue' | 'search';
+export type MusicBalloonTab = 'queue' | 'search' | 'lyrics';
 
 /** The queue while something plays, search otherwise (nothing to show in the queue yet). */
 export function initialTabFor(session: MusicSessionState | null): MusicBalloonTab {

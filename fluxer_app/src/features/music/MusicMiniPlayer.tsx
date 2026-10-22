@@ -8,6 +8,7 @@ import Channels from '@app/features/channel/state/Channels';
 import {previous, setPaused, skip} from '@app/features/music/MusicApi';
 import {MusicBalloonPopout} from '@app/features/music/MusicBalloon';
 import {isMusicUsableInCall} from '@app/features/music/MusicCall';
+import {MusicLyricsToggle} from '@app/features/music/MusicLyricsViews';
 import styles from '@app/features/music/MusicMiniPlayer.module.css';
 import {miniPlayerView} from '@app/features/music/MusicMiniPlayerModel';
 import {describeMusicProgress} from '@app/features/music/MusicPanelStateMachine';
@@ -67,19 +68,22 @@ export const MusicMiniPlayer = observer(function MusicMiniPlayer() {
 	const progress = describeMusicProgress(view.positionMs, view.durationMs);
 	return (
 		<div className={styles.miniPlayer} data-flx="music.mini-player">
-			<MusicBalloonPopout channel={channel} position="right" data-flx="music.mini-player.track-popout">
-				<button type="button" className={styles.trackButton} data-flx="music.mini-player.track">
-					<Artwork url={view.artworkUrl} size="small" data-flx="music.mini-player.artwork" />
-					<span className={styles.trackText} data-flx="music.mini-player.text">
-						<span className={styles.title} title={view.title} data-flx="music.mini-player.title">
-							{view.title}
+			<div className={styles.trackRow} data-flx="music.mini-player.track-row">
+				<MusicBalloonPopout channel={channel} position="right" data-flx="music.mini-player.track-popout">
+					<button type="button" className={styles.trackButton} data-flx="music.mini-player.track">
+						<Artwork url={view.artworkUrl} size="small" data-flx="music.mini-player.artwork" />
+						<span className={styles.trackText} data-flx="music.mini-player.text">
+							<span className={styles.title} title={view.title} data-flx="music.mini-player.title">
+								{view.title}
+							</span>
+							<span className={styles.artist} title={view.artist} data-flx="music.mini-player.artist">
+								{view.artist}
+							</span>
 						</span>
-						<span className={styles.artist} title={view.artist} data-flx="music.mini-player.artist">
-							{view.artist}
-						</span>
-					</span>
-				</button>
-			</MusicBalloonPopout>
+					</button>
+				</MusicBalloonPopout>
+				<MusicLyricsToggle data-flx="music.mini-player.button.lyrics" />
+			</div>
 			<div
 				className={clsx(styles.progressBar, progress.fraction == null && styles.progressIndeterminate)}
 				role="progressbar"

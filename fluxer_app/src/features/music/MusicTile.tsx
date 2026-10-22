@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // The channel music participant as a tile in the call grid: artwork (or a big note),
-// title, artist and source, no controls. Clicking it does nothing: the music is
+// title, artist and source; with lyrics on and synced, the "letreiro" of the lyrics over the
+// blurred artwork. Its only control is the lyrics on/off button shown on hover: the music is
 // controlled from the 🎵 button of the call and the balloon it opens.
 
 import {withMusicGridEntry} from '@app/features/music/MusicGridEntry';
 import {musicIdentityForChannel} from '@app/features/music/MusicIdentity';
+import {
+	MusicLyricsToggle,
+	MusicTileLyrics,
+	MusicTileLyricsNotice,
+	tileShowsLyrics,
+	useCurrentLyrics,
+} from '@app/features/music/MusicLyricsViews';
 import MusicStore from '@app/features/music/MusicStore';
 import styles from '@app/features/music/MusicTile.module.css';
 import type {VoiceGridEntry} from '@app/features/voice/components/VoiceParticipantConsolidation';
@@ -37,6 +45,8 @@ export const MusicTile = observer(function MusicTile({channelId}: {channelId: st
 	const [artworkFailed, setArtworkFailed] = useState(false);
 	useEffect(() => setArtworkFailed(false), [artworkUrl]);
 	const showArtwork = artworkUrl != null && !artworkFailed;
+	const lyrics = useCurrentLyrics(session);
+	const showLyrics = session != null && tileShowsLyrics(lyrics);
 	const status = !track ? 'Nada tocando' : session?.paused ? 'Pausado' : null;
 	const label = track ? `Música: ${track.title}${track.artist ? `, ${track.artist}` : ''}` : 'Música';
 	return (
@@ -57,34 +67,44 @@ export const MusicTile = observer(function MusicTile({channelId}: {channelId: st
 					data-flx="music.music-tile.backdrop"
 				/>
 			)}
-			<div className={styles.content} data-flx="music.music-tile.content">
-				{showArtwork ? (
-					<img
-						className={styles.artwork}
-						src={artworkUrl}
-						alt=""
-						referrerPolicy="no-referrer"
-						onError={() => setArtworkFailed(true)}
-						data-flx="music.music-tile.artwork"
-					/>
-				) : (
-					<div className={styles.placeholder} aria-hidden="true" data-flx="music.music-tile.placeholder">
-						<MusicNoteIcon weight="fill" data-flx="music.music-tile.placeholder.icon" />
-					</div>
-				)}
-				{track && (
-					<div className={styles.text} data-flx="music.music-tile.text">
-						<span className={styles.title} title={track.title} data-flx="music.music-tile.title">
-							{track.title}
-						</span>
-						{track.artist && (
-							<span className={styles.artist} title={track.artist} data-flx="music.music-tile.artist">
-								{track.artist}
+			{showLyrics && session ? (
+				<MusicTileLyrics session={session} lyrics={lyrics} />
+			) : (
+				<div className={styles.content} data-flx="music.music-tile.content">
+					{showArtwork ? (
+						<img
+							className={styles.artwork}
+							src={artworkUrl}
+							alt=""
+							referrerPolicy="no-referrer"
+							onError={() => setArtworkFailed(true)}
+							data-flx="music.music-tile.artwork"
+						/>
+					) : (
+						<div className={styles.placeholder} aria-hidden="true" data-flx="music.music-tile.placeholder">
+							<MusicNoteIcon weight="fill" data-flx="music.music-tile.placeholder.icon" />
+						</div>
+					)}
+					{track && (
+						<div className={styles.text} data-flx="music.music-tile.text">
+							<span className={styles.title} title={track.title} data-flx="music.music-tile.title">
+								{track.title}
 							</span>
-						)}
-					</div>
-				)}
-			</div>
+							{track.artist && (
+								<span className={styles.artist} title={track.artist} data-flx="music.music-tile.artist">
+									{track.artist}
+								</span>
+							)}
+						</div>
+					)}
+				</div>
+			)}
+			{track && (
+				<span className={styles.lyricsToggle} data-flx="music.music-tile.lyrics-toggle">
+					<MusicLyricsToggle data-flx="music.music-tile.lyrics-toggle.button" />
+				</span>
+			)}
+			<MusicTileLyricsNotice lyrics={lyrics} />
 			{track && (
 				<span className={styles.source} data-flx="music.music-tile.source">
 					{track.recommended ? 'Recomendada' : SOURCE_LABEL[track.source]}

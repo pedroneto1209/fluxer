@@ -11,6 +11,13 @@
 	background-color: var(--background-tertiary);
 }
 
+.trackRow {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-1);
+	min-width: 0;
+}
+
 .trackButton {
 	display: flex;
 	align-items: center;

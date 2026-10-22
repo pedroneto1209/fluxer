@@ -1,0 +1,144 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Tile letreiro: over the tile's blurred artwork backdrop (MusicTile .backdrop). */
+.letreiro {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: clamp(0.25rem, 3cqh, 0.75rem);
+	width: 100%;
+	max-width: calc(100% - 2rem);
+	padding: 0 1rem;
+	text-align: center;
+}
+
+.lines {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: clamp(0.125rem, 2cqh, 0.5rem);
+	min-width: 0;
+	max-width: 100%;
+}
+
+.line {
+	margin: 0;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	transition:
+		opacity 0.3s ease,
+		font-size 0.3s ease;
+}
+
+.previous,
+.next {
+	opacity: 0.55;
+	font-size: clamp(0.75rem, 5.5cqh, 1rem);
+}
+
+.current {
+	color: var(--voice-text-strong);
+	font-size: clamp(0.875rem, 9cqh, 1.5rem);
+	font-weight: 700;
+	white-space: normal;
+	text-wrap: balance;
+	text-shadow: 0 0.0625rem 0.5rem rgba(0, 0, 0, 0.5);
+}
+
+.caption {
+	margin: 0;
+	max-width: 100%;
+	overflow: hidden;
+	opacity: 0.7;
+	font-size: clamp(0.6875rem, 4.5cqh, 0.875rem);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Small tile (crowded call, compact view): only the line being sung. */
+@container (max-height: 9rem) {
+	.previous,
+	.next,
+	.caption {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.line {
+		transition: none;
+	}
+}
+
+.notice {
+	position: absolute;
+	right: 0.375rem;
+	bottom: 0.375rem;
+	padding: 0.125rem 0.375rem;
+	border-radius: 0.5625rem;
+	background: rgba(0, 0, 0, 0.6);
+	font-size: 0.6875rem;
+	opacity: 0.85;
+}
+
+/* The on/off button: dimmed while lyrics are off. */
+.toggle {
+	display: inline-flex;
+	flex: 0 0 auto;
+	opacity: 0.6;
+}
+
+.toggleOn {
+	opacity: 1;
+}
+
+/* Balloon "Letra" tab. */
+.tabScroller {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.tabLines {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-2);
+	margin: 0;
+	padding: var(--spacing-3);
+	list-style: none;
+}
+
+.tabLine {
+	color: var(--text-primary-muted);
+	font-size: 0.9375rem;
+	line-height: 1.4;
+	transition: color 0.2s ease;
+}
+
+.tabLinePast {
+	opacity: 0.6;
+}
+
+.tabLineCurrent {
+	color: var(--text-primary);
+	font-weight: 700;
+}
+
+.plain {
+	margin: 0;
+	padding: var(--spacing-3);
+	color: var(--text-primary);
+	font-size: 0.9375rem;
+	line-height: 1.5;
+	white-space: pre-line;
+}
+
+.muted {
+	margin: 0;
+	padding: var(--spacing-3);
+	color: var(--text-primary-muted);
+	font-size: 0.875rem;
+}
