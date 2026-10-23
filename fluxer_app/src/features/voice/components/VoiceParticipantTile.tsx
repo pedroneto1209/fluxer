@@ -121,6 +121,8 @@ import {
 	VoiceTrackSource,
 } from '@app/features/voice/engine/VoiceTrackSource';
 import {selectVoiceEngineV2AppEffectiveSelfMuteForVoiceStatePayload} from '@app/features/voice/engine/v2/VoiceEngineV2AppSelectors';
+import {AwayTileOverlay} from '@app/features/voice/mic_flip/AwayIndicators';
+import AwayStore from '@app/features/voice/mic_flip/AwayStore';
 import ActiveScreenShareSource from '@app/features/voice/state/ActiveScreenShareSource';
 import CallMediaPrefs from '@app/features/voice/state/CallMediaPrefs';
 import LocalVoiceState from '@app/features/voice/state/LocalVoiceState';
@@ -1037,6 +1039,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 					tabIndex={isInsideTilePopout ? undefined : 0}
 				>
 					{mediaNode}
+					{participantUser && !isScreenShare && AwayStore.isUserAway(participantUser.id) && <AwayTileOverlay />}
 					{isScreenShareBuffering &&
 						!isFocusedPlaceholderTile &&
 						screenShareBufferingPresentation === 'last-frame' &&

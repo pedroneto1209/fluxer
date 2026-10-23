@@ -85,6 +85,12 @@ class MicFlipStore {
 		return this.headsetName != null;
 	}
 
+	// "Talking to someone in the room": the option is on and the boom mic is up. Shared
+	// with the call by AwayStore so everyone sees it (unlike an ordinary mute).
+	get raised(): boolean {
+		return this.enabled && this.position === 'up';
+	}
+
 	setEnabled(enabled: boolean): void {
 		this.enabled = enabled;
 	}

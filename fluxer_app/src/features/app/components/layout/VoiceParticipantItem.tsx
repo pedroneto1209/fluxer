@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {LongPressable} from '@app/features/app/components/LongPressable';
-import {VoiceRowAttentionButton} from '@app/features/attention/AttentionButton';
 import channelItemSurfaceStyles from '@app/features/app/components/layout/ChannelItemSurface.module.css';
 import {DragItemType} from '@app/features/app/components/layout/types/DndTypes';
 import styles from '@app/features/app/components/layout/VoiceParticipantItem.module.css';
 import {VoiceStateIcons} from '@app/features/app/components/layout/VoiceStateIcons';
 import {useContextMenuHoverState} from '@app/features/app/hooks/useContextMenuHoverState';
+import {VoiceRowAttentionButton} from '@app/features/attention/AttentionButton';
 import {PreloadableUserPopout} from '@app/features/channel/components/PreloadableUserPopout';
 import type {VoiceState} from '@app/features/gateway/types/GatewayVoiceTypes';
 import * as NavigationCommands from '@app/features/navigation/commands/NavigationCommands';
@@ -27,6 +27,8 @@ import {useStreamWatchState} from '@app/features/voice/components/useStreamWatch
 import {resolveVoiceParticipantDisplayState} from '@app/features/voice/components/VoiceParticipantDisplayState';
 import MediaEngine, {useMediaEngineVersion} from '@app/features/voice/engine/MediaEngineFacade';
 import {useStreamWatchDoubleClick} from '@app/features/voice/hooks/useStreamWatchDoubleClick';
+import {AwayRowIcon, awayNameClassName, awayRowClassName} from '@app/features/voice/mic_flip/AwayIndicators';
+import AwayStore from '@app/features/voice/mic_flip/AwayStore';
 import LocalVoiceState from '@app/features/voice/state/LocalVoiceState';
 import {buildVoiceParticipantIdentity} from '@app/features/voice/utils/VoiceParticipantIdentity';
 import {isParticipantVoicePermissionMuted} from '@app/features/voice/utils/VoicePermissionUtils';
@@ -81,6 +83,8 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 	const localSelfVideo = LocalVoiceState.getSelfVideo();
 	const localSelfStream = LocalVoiceState.getSelfStream();
 	const isLocalParticipant = isCurrentUserConnection;
+	// Mic flipped up to talk to someone in the room (not an ordinary mute).
+	const isAway = !isGroupedItem && AwayStore.isUserAway(user.id);
 	const rowRef = useRef<HTMLDivElement>(null);
 	const isContextMenuOpen = useContextMenuHoverState(rowRef);
 	const [{isDragging}, dragRef] = useDrag(
@@ -204,6 +208,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 				ref={dragConnectorRef}
 				className={clsx(
 					styles.participantRow,
+					isAway && awayRowClassName,
 					isActuallySpeaking && styles.participantRowSpeaking,
 					isDragging && styles.participantRowDragging,
 					isCurrentUserConnection && !isActuallySpeaking && styles.participantRowCurrentConnection,
@@ -245,6 +250,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 						data-flx="app.voice-participant-item.avatar-with-presence"
 					/>
 				)}
+				{isAway && <AwayRowIcon />}
 				{isGroupedItem ? (
 					<Tooltip text={displayName} position="top" data-flx="app.voice-participant-item.tooltip">
 						<span
@@ -264,6 +270,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 							styles.participantName,
 							isActuallySpeaking && styles.participantNameSpeaking,
 							isCurrentUser && !isActuallySpeaking && styles.participantNameCurrent,
+							isAway && awayNameClassName,
 						)}
 						data-flx="app.voice-participant-item.participant-name--2"
 					>

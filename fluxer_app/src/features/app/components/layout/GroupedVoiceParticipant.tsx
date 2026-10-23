@@ -23,6 +23,8 @@ import {useStreamWatchState} from '@app/features/voice/components/useStreamWatch
 import {resolveVoiceParticipantDisplayState} from '@app/features/voice/components/VoiceParticipantDisplayState';
 import MediaEngine, {useMediaEngineVersion} from '@app/features/voice/engine/MediaEngineFacade';
 import {useStreamWatchDoubleClick} from '@app/features/voice/hooks/useStreamWatchDoubleClick';
+import {AwayRowIcon, awayNameClassName, awayRowClassName} from '@app/features/voice/mic_flip/AwayIndicators';
+import AwayStore from '@app/features/voice/mic_flip/AwayStore';
 import LocalVoiceState from '@app/features/voice/state/LocalVoiceState';
 import {buildVoiceParticipantIdentity} from '@app/features/voice/utils/VoiceParticipantIdentity';
 import {isParticipantVoicePermissionMuted} from '@app/features/voice/utils/VoicePermissionUtils';
@@ -63,6 +65,8 @@ export const GroupedVoiceParticipant = observer(function GroupedVoiceParticipant
 	const [isExpanded, setIsExpanded] = useState(false);
 	const currentUser = Users.getCurrentUser();
 	const isCurrentUser = currentUser?.id === user.id;
+	// Mic flipped up to talk to someone in the room (not an ordinary mute).
+	const isAway = AwayStore.isUserAway(user.id);
 	const currentConnectionId = MediaEngine.connectionId;
 	const localSelfMute = LocalVoiceState.getSelfMute();
 	const localSelfDeaf = LocalVoiceState.getSelfDeaf();
@@ -238,6 +242,7 @@ export const GroupedVoiceParticipant = observer(function GroupedVoiceParticipant
 						ref={rowRef}
 						className={clsx(
 							styles.participantButton,
+							isAway && awayRowClassName,
 							stateAgg.anySpeaking && styles.participantButtonSpeaking,
 							isContextMenuOpen && styles.participantButtonContextMenuActive,
 						)}
@@ -258,12 +263,14 @@ export const GroupedVoiceParticipant = observer(function GroupedVoiceParticipant
 								guildId={guildId}
 								data-flx="app.grouped-voice-participant.avatar-with-presence"
 							/>
+							{isAway && <AwayRowIcon />}
 							<div className={styles.nameContainer} data-flx="app.grouped-voice-participant.name-container">
 								<span
 									className={clsx(
 										styles.participantName,
 										stateAgg.anySpeaking && styles.participantNameSpeaking,
 										isCurrentUser && !stateAgg.anySpeaking && styles.participantNameCurrent,
+										isAway && awayNameClassName,
 									)}
 									data-flx="app.grouped-voice-participant.participant-name"
 								>

@@ -7,6 +7,7 @@ import {bindMusicRoom} from '@app/features/music/MusicRoomBinding';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
 import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
+import AwayStore from '@app/features/voice/mic_flip/AwayStore';
 import MicFlipStore from '@app/features/voice/mic_flip/MicFlipStore';
 import {type RoomAudioRendererProps, RoomContext} from '@livekit/components-react';
 import type {Room} from 'livekit-client';
@@ -46,6 +47,9 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 
 	// Watches a JBL headset's flip-to-mute boom mic, if one is plugged in.
 	useEffect(() => MicFlipStore.start(), []);
+
+	// Tells the call when the headset mic is flipped up (and hears who else has).
+	useEffect(() => (room ? AwayStore.bindRoom(room) : undefined), [room]);
 
 	// Nudges ("chamar atenção") arrive as data messages in the call.
 	useEffect(() => (room ? AttentionStore.bindRoom(room) : undefined), [room]);
