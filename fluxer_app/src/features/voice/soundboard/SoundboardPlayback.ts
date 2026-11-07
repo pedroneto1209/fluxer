@@ -6,6 +6,13 @@
 // published next to the user's microphone, so everyone in the call hears it on any
 // client, and mute or push-to-talk on the microphone does not cut it. The same clip
 // is also played locally so the sender hears what they triggered.
+//
+// While the track is published it must never go quiet on the wire. Chromium stops
+// pulling a MediaStreamAudioDestinationNode that has no inputs, so between clips the
+// track sends no RTP at all. LiveKit's server then rates the unmuted track as LOST,
+// the client answers with a full reconnect that sends a leave, Fluxer's API drops the
+// voice state on participant_left, and the call hangs up. A silent ConstantSourceNode
+// stays connected for the whole publication so the track keeps sending silence.
 
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
@@ -32,6 +39,7 @@ class SoundboardPlayback {
 	private context: SinkableAudioContext | null = null;
 	private appliedSinkId: string | null = null;
 	private destination: MediaStreamAudioDestinationNode | null = null;
+	private keepAlive: ConstantSourceNode | null = null;
 	private track: LocalAudioTrack | null = null;
 	private publishedRoom: Room | null = null;
 	private publishing: Promise<void> | null = null;
@@ -154,14 +162,21 @@ class SoundboardPlayback {
 			if (!mediaTrack) {
 				throw new Error('Could not create the soundboard audio track.');
 			}
+			const keepAlive = startSilence(context, destination);
 			const track = new LocalAudioTrack(mediaTrack, undefined, true);
-			await room.localParticipant.publishTrack(track, {
-				name: SOUNDBOARD_TRACK_NAME,
-				source: Track.Source.Microphone,
-				audioPreset: AudioPresets.music,
-				red: false,
-			});
+			try {
+				await room.localParticipant.publishTrack(track, {
+					name: SOUNDBOARD_TRACK_NAME,
+					source: Track.Source.Microphone,
+					audioPreset: AudioPresets.music,
+					red: false,
+				});
+			} catch (error) {
+				stopSilence(keepAlive);
+				throw error;
+			}
 			this.destination = destination;
+			this.keepAlive = keepAlive;
 			this.track = track;
 			this.publishedRoom = room;
 			logger.info('Published the soundboard track');
@@ -177,9 +192,12 @@ class SoundboardPlayback {
 		this.clearIdleTimer();
 		const track = this.track;
 		const room = this.publishedRoom;
+		const keepAlive = this.keepAlive;
 		this.track = null;
 		this.publishedRoom = null;
 		this.destination = null;
+		this.keepAlive = null;
+		if (keepAlive) stopSilence(keepAlive);
 		if (!track) return;
 		try {
 			if (room && room.state !== ConnectionState.Disconnected) {
@@ -209,6 +227,23 @@ class SoundboardPlayback {
 			this.idleTimer = null;
 		}
 	}
+}
+
+function startSilence(context: AudioContext, destination: MediaStreamAudioDestinationNode): ConstantSourceNode {
+	const silence = context.createConstantSource();
+	silence.offset.value = 0;
+	silence.connect(destination);
+	silence.start();
+	return silence;
+}
+
+function stopSilence(silence: ConstantSourceNode): void {
+	try {
+		silence.stop();
+	} catch {}
+	try {
+		silence.disconnect();
+	} catch {}
 }
 
 function clampVolume(volume: number): number {
