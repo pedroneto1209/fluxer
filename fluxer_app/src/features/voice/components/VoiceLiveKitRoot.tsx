@@ -6,6 +6,7 @@ import {ensureMusicPanelAutoClose} from '@app/features/music/MusicCall';
 import {bindMusicRoom} from '@app/features/music/MusicRoomBinding';
 import {ComponentBus} from '@app/features/platform/utils/ComponentBus';
 import {VoiceRoomContext} from '@app/features/voice/components/VoiceRoomContext';
+import VoiceDropRecorder from '@app/features/voice/diagnostics/VoiceDropRecorder';
 import MediaEngine from '@app/features/voice/engine/MediaEngineFacade';
 import AwayStore from '@app/features/voice/mic_flip/AwayStore';
 import MicFlipStore from '@app/features/voice/mic_flip/MicFlipStore';
@@ -44,6 +45,10 @@ export function VoiceLiveKitRoot({room, children}: VoiceLiveKitRootProps): React
 			}),
 		[],
 	);
+
+	// Sends the server a report with the cause whenever the app leaves a call.
+	useEffect(() => VoiceDropRecorder.start(), []);
+	useEffect(() => (room ? VoiceDropRecorder.bindRoom(room) : undefined), [room]);
 
 	// Watches a JBL headset's flip-to-mute boom mic, if one is plugged in.
 	useEffect(() => MicFlipStore.start(), []);

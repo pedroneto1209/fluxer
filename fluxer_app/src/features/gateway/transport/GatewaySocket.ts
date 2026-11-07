@@ -32,6 +32,7 @@ import {
 import {Logger, LogLevel} from '@app/features/platform/utils/AppLogger';
 import {ExponentialBackoff} from '@app/features/platform/utils/RetryScheduler';
 import type {GatewayCustomStatusPayload} from '@app/features/user/state/CustomStatus';
+import {notifyVoiceStateSend} from '@app/features/voice/diagnostics/VoiceStateSendTap';
 import type {GatewayErrorCode} from '@fluxer/constants/src/GatewayConstants';
 import {GatewayCloseCodes, GatewayOpcodes} from '@fluxer/constants/src/GatewayConstants';
 import type {ValueOf} from '@fluxer/constants/src/ValueOf';
@@ -608,6 +609,7 @@ export class GatewaySocket extends EventEmitter<GatewaySocketEvents> {
 	}
 
 	updateVoiceStateExplicit(params: GatewayVoiceStateUpdateParams): boolean {
+		notifyVoiceStateSend(params);
 		return this.sendPayload(this.buildVoiceStatePayload(params));
 	}
 

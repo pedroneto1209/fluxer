@@ -218,3 +218,12 @@ export async function fetchSoundAudio(guildId: string, soundId: string): Promise
 	);
 	return await response.arrayBuffer();
 }
+
+// Diagnostics for a call that ended (see VoiceDropRecorder); kept on the server.
+export async function sendVoiceDropReport(report: object): Promise<void> {
+	await request('/api/diagnostics/voice', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(report),
+	});
+}

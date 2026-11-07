@@ -59,10 +59,18 @@ const resolveDefaultMinLevel = (): LogLevel => {
 	}
 };
 
+// Sees every line before the level filter (the voice drop recorder keeps recent ones).
+export type LogTap = (level: LogLevel, name: string, args: ReadonlyArray<unknown>) => void;
+
 export class Logger {
 	private name: string;
 	private minLevelOverride?: LogLevel;
 	private static globalMinLevel: LogLevel = resolveDefaultMinLevel();
+	private static tap: LogTap | null = null;
+
+	static setTap(tap: LogTap | null): void {
+		Logger.tap = tap;
+	}
 
 	constructor(name = 'default', minLevelOverride?: LogLevel) {
 		this.name = name;
@@ -129,6 +137,7 @@ export class Logger {
 	}
 
 	private log(level: LogLevel, ...args: Array<unknown>): void {
+		Logger.tap?.(level, this.name, args);
 		const minLevel = this.getCurrentLogLevel();
 		if (level < minLevel) return;
 		const levelName = LEVEL_NAME_BY_VALUE[level] || String(level);
