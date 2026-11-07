@@ -62,6 +62,21 @@ export interface MusicSearchResult {
 	spotify: Array<MusicTrack> | null;
 }
 
+/** A playlist or album someone played from the Playlists tab (shared by the community). */
+export interface MusicSavedPlaylist {
+	id: string;
+	source: MusicSource;
+	kind: 'playlist' | 'album';
+	name: string;
+	owner: string;
+	artworkUrl: string | null;
+	url: string;
+	trackCount: number;
+	addedBy: string | null;
+	lastPlayedAt: number;
+	playCount: number;
+}
+
 export interface SpotifyStatus {
 	connected: boolean;
 	displayName: string | null;
@@ -157,6 +172,27 @@ export function parseSessionState(json: unknown): MusicSessionState | null {
 		notice: typeof json.notice === 'string' ? json.notice : null,
 		spotifyRadio: json.spotify_radio === true,
 		revision,
+	};
+}
+
+export function parseSavedPlaylist(raw: unknown): MusicSavedPlaylist | null {
+	if (!isObject(raw)) return null;
+	const {id, source, kind, name, owner, artwork_url, url, track_count, added_by, last_played_at, play_count} = raw;
+	if (typeof id !== 'string' || typeof name !== 'string' || typeof url !== 'string') return null;
+	if (source !== 'spotify' && source !== 'youtube') return null;
+	const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+	return {
+		id,
+		source,
+		kind: kind === 'album' ? 'album' : 'playlist',
+		name,
+		owner: typeof owner === 'string' ? owner : '',
+		artworkUrl: typeof artwork_url === 'string' ? artwork_url : null,
+		url,
+		trackCount: count(track_count),
+		addedBy: typeof added_by === 'string' ? added_by : null,
+		lastPlayedAt: count(last_played_at),
+		playCount: count(play_count),
 	};
 }
 
@@ -266,6 +302,42 @@ export async function addToQueue(
 			? {input: payload.input}
 			: {track: {source: payload.track.source, source_id: payload.track.sourceId}};
 	return readState(await request(`${channelPath(guildId, channelId)}/queue`, jsonInit('POST', body)));
+}
+
+export async function listSavedPlaylists(guildId: string): Promise<Array<MusicSavedPlaylist>> {
+	const response = await request(`/api/guilds/${encodeURIComponent(guildId)}/playlists`);
+	const body: unknown = await response.json();
+	if (!isObject(body) || !Array.isArray(body.playlists)) {
+		throw new MusicApiError(response.status, 'BAD_RESPONSE', 'Resposta inválida do serviço de música.');
+	}
+	return body.playlists.map(parseSavedPlaylist).filter((p): p is MusicSavedPlaylist => p !== null);
+}
+
+/** Queues a playlist or album (a pasted link or a saved one); `playNow` starts it right away. */
+export async function playPlaylist(
+	guildId: string,
+	channelId: string,
+	payload: {input: string} | {playlistId: string},
+	playNow: boolean,
+): Promise<{session: MusicSessionState; playlist: MusicSavedPlaylist | null}> {
+	const body = 'input' in payload ? {input: payload.input} : {playlist_id: payload.playlistId};
+	const response = await request(
+		`${channelPath(guildId, channelId)}/playlists`,
+		jsonInit('POST', {...body, play_now: playNow}),
+	);
+	const json: unknown = await response.json();
+	const session = isObject(json) ? parseSessionState(json.session) : null;
+	if (!isObject(json) || !session) {
+		throw new MusicApiError(response.status, 'BAD_RESPONSE', 'Resposta inválida do serviço de música.');
+	}
+	return {session, playlist: parseSavedPlaylist(json.playlist)};
+}
+
+export async function deleteSavedPlaylist(guildId: string, playlistId: string): Promise<void> {
+	await request(
+		`/api/guilds/${encodeURIComponent(guildId)}/playlists/${encodeURIComponent(playlistId)}`,
+		jsonInit('DELETE'),
+	);
 }
 
 export async function removeFromQueue(guildId: string, channelId: string, itemId: string): Promise<MusicSessionState> {

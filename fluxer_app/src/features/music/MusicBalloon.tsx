@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// The music balloon: a popout with the "Fila" and "Buscar" tabs. It opens above the 🎵 button
+// The music balloon: a popout with the "Fila", "Buscar", "Playlists" and "Letra" tabs. It opens above the 🎵 button
 // of the call control bar, to the right of the "🎵 Música" row of the channel sidebar and
 // from the mini player. All of them share MUSIC_BALLOON_KEY, so there is only one balloon:
 // clicking the trigger it hangs from closes it, clicking another trigger moves it there.
@@ -14,6 +14,7 @@ import MusicBalloonState, {
 } from '@app/features/music/MusicBalloonState';
 import {MusicLyricsTab} from '@app/features/music/MusicLyricsViews';
 import {IconButton} from '@app/features/music/MusicParts';
+import {MusicPlaylistsTab} from '@app/features/music/MusicPlaylistsTab';
 import {queueTabLabel} from '@app/features/music/MusicQueueModel';
 import {MusicQueueTab} from '@app/features/music/MusicQueueTab';
 import {MusicSearchTab} from '@app/features/music/MusicSearchTab';
@@ -39,6 +40,7 @@ export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: 
 	const tabs: Array<{id: MusicBalloonTab; label: string}> = [
 		{id: 'queue', label: queueTabLabel(session)},
 		{id: 'search', label: 'Buscar'},
+		{id: 'playlists', label: 'Playlists'},
 		{id: 'lyrics', label: 'Letra'},
 	];
 
@@ -93,6 +95,8 @@ export const MusicBalloon = observer(function MusicBalloon({channel}: {channel: 
 					)
 				) : tab === 'lyrics' ? (
 					<MusicLyricsTab session={session} />
+				) : tab === 'playlists' ? (
+					<MusicPlaylistsTab channel={channel} run={run} pending={pending} />
 				) : (
 					<MusicSearchTab session={session} channel={channel} run={run} pending={pending} />
 				)}

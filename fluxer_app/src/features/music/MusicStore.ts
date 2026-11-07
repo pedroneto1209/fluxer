@@ -28,6 +28,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 	UNSUPPORTED_LINK: 'Este link não é suportado.',
 	TRACK_UNAVAILABLE: 'Esta faixa não está disponível.',
 	QUEUE_FULL: 'A fila está cheia.',
+	NOT_A_PLAYLIST: 'Cole o link de uma playlist ou álbum do Spotify, ou de uma playlist do YouTube.',
+	PLAYLIST_NOT_FOUND: 'Esta playlist não está mais na lista.',
 	INVALID_STATE: 'A autorização do Spotify expirou. Tente conectar novamente.',
 	INVALID_REDIRECT_URL: 'O endereço de redirecionamento do Spotify é inválido.',
 	BAD_REQUEST: 'Pedido inválido.',
