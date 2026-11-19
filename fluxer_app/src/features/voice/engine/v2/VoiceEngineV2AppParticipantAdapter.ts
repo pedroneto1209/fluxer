@@ -5,6 +5,7 @@ import {isMusicIdentity} from '@app/features/music/MusicIdentity';
 import type {LivekitParticipantSnapshot} from '@app/features/voice/engine/VoiceParticipantStateMachine';
 import {asVoiceConnectionQuality, VoiceTrackSource} from '@app/features/voice/engine/VoiceTrackSource';
 import {assertNonNullObject, assertString} from '@app/features/voice/engine/v2/VoiceEngineV2AppAdapterAssertions';
+import {isXboxIdentity} from '@app/features/xbox/XboxIdentity';
 import type {VoiceEngineV2Event} from '@fluxer/voice_engine_v2/src/protocol/events';
 import type {
 	VoiceEngineV2Model,
@@ -169,7 +170,7 @@ export class VoiceEngineV2AppParticipantAdapter {
 	upsertParticipant(participant: Participant): void {
 		assertNonNullObject(participant, 'participant');
 		assertString(participant.identity, 'participant.identity');
-		if (isMusicIdentity(participant.identity)) return;
+		if (isMusicIdentity(participant.identity) || isXboxIdentity(participant.identity)) return;
 		if (this.isConnectionDiscarded(extractParticipantConnectionId(participant.identity))) return;
 		const previous = this.participants[participant.identity];
 		const snapshot = snapshotFromParticipant(participant, previous);

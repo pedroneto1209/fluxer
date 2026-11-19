@@ -39,6 +39,7 @@ import {
 	buildVoiceParticipantIdentity,
 	parseVoiceParticipantIdentity,
 } from '@app/features/voice/utils/VoiceParticipantIdentity';
+import {useXboxGridEntries} from '@app/features/xbox/XboxGridEntry';
 import {isTrackReference, type TrackReferenceOrPlaceholder, useMaybeRoomContext} from '@livekit/components-react';
 import {type Participant, type Room, RoomEvent, type Track} from 'livekit-client';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
@@ -493,13 +494,14 @@ export function useVoiceCallTracksAndLayout({channel, expandedUserIds}: UseVoice
 		[gridTracks, expandedUserIds],
 	);
 	const gridEntriesWithMusic = useMusicGridEntries(gridEntries, channel.id);
+	const gridEntriesWithXbox = useXboxGridEntries(gridEntriesWithMusic, channel.id);
 	return {
 		tracks: renderableTracks,
 		screenShareTracks: sortedScreenShareTracksWithVirtual,
 		cameraTracksAll: sortedCameraTracksAll,
 		filteredCameraTracks: sortedFilteredCameraTracks,
 		hasScreenShare,
-		gridEntries: gridEntriesWithMusic,
+		gridEntries: gridEntriesWithXbox,
 		participantCount,
 		layoutMode,
 		pinnedParticipantIdentity,

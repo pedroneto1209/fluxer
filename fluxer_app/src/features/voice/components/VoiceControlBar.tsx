@@ -87,6 +87,7 @@ import {
 	NO_SCREEN_SHARE_PERMISSION_DESCRIPTOR,
 	UNMUTE_DESCRIPTOR,
 } from '@app/features/voice/utils/VoiceSharedMessageDescriptors';
+import {XboxControlBarButton} from '@app/features/xbox/XboxControlBarButton';
 import {Permissions} from '@fluxer/constants/src/ChannelConstants';
 import {VOICE_CHANNEL_CAMERA_USER_LIMIT} from '@fluxer/constants/src/LimitConstants';
 import {msg} from '@lingui/core/macro';
@@ -814,6 +815,7 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 				</Tooltip>
 			</div>
 			<MusicControlBarButton data-flx="voice.voice-control-bar.voice-control-bar-inner.music-control-bar-button" />
+			<XboxControlBarButton data-flx="voice.voice-control-bar.voice-control-bar-inner.xbox-control-bar-button" />
 			<div
 				className={styles.buttonContainer}
 				data-flx="voice.voice-control-bar.voice-control-bar-inner.button-container--2"

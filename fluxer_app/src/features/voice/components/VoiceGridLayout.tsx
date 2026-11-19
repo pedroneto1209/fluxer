@@ -10,6 +10,8 @@ import {
 } from '@app/features/voice/components/VoiceGridLayoutMetrics';
 import type {VoiceGridEntry} from '@app/features/voice/components/VoiceParticipantConsolidation';
 import {VoiceTileGroupContext} from '@app/features/voice/components/VoiceTileGroupContext';
+import {xboxParticipantFromGridEntry} from '@app/features/xbox/XboxGridEntry';
+import {XboxTile} from '@app/features/xbox/XboxTile';
 import {ParticipantContext, TrackRefContext} from '@livekit/components-react';
 import {clsx} from 'clsx';
 import type React from 'react';
@@ -135,6 +137,14 @@ export function VoiceGridLayout({
 				data-flx="voice.voice-grid-layout.grid"
 			>
 				{visibleEntries.map((entry) => {
+					const xboxParticipant = xboxParticipantFromGridEntry(entry);
+					if (xboxParticipant) {
+						return (
+							<div key={entry.key} className={styles.gridItem} data-flx="voice.voice-grid-layout.grid-item.xbox">
+								<XboxTile participant={xboxParticipant} data-flx="voice.voice-grid-layout.xbox-tile" />
+							</div>
+						);
+					}
 					const musicChannelId = musicChannelIdFromGridEntry(entry);
 					if (musicChannelId) {
 						return (

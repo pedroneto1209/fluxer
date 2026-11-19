@@ -1,0 +1,128 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Same frame as a participant tile (and the music tile). */
+.tile {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	container-type: size;
+	border-radius: 0.75rem;
+	background-color: var(--voice-surface-3);
+	color: var(--voice-text-strong);
+}
+
+.tile:fullscreen {
+	border-radius: 0;
+	background-color: #000;
+}
+
+.video {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background-color: #000;
+}
+
+.loading {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.9rem;
+	opacity: 0.8;
+}
+
+.placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: clamp(0.25rem, 3cqh, 0.75rem);
+	padding: 0.75rem;
+	text-align: center;
+}
+
+.bigIcon {
+	width: clamp(1.5rem, 18cqh, 3.5rem);
+	height: clamp(1.5rem, 18cqh, 3.5rem);
+	color: #107c10;
+}
+
+.title {
+	font-weight: 600;
+	font-size: clamp(0.8rem, 7cqh, 1.1rem);
+}
+
+.watch {
+	padding: 0.4rem 1.1rem;
+	border: none;
+	border-radius: 999px;
+	background-color: #107c10;
+	color: #fff;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.watch:hover {
+	background-color: #0e6a0e;
+}
+
+/* Shown on hover, over the bottom of the picture. */
+.controls {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.5rem 0.6rem;
+	background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+	color: #fff;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.tile:hover .controls,
+.controls:focus-within {
+	opacity: 1;
+}
+
+.name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+.iconButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	padding: 0;
+	border: none;
+	border-radius: 0.4rem;
+	background: rgba(255, 255, 255, 0.12);
+	color: inherit;
+	cursor: pointer;
+}
+
+.iconButton:hover {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+.volume {
+	width: 5.5rem;
+	accent-color: #107c10;
+}

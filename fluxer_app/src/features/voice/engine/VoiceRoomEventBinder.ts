@@ -22,6 +22,7 @@ import {ScreenShareWatchErrorCode, ScreenShareWatchFailures} from '@app/features
 import {monitorScreenShareDecodeHealth} from '@app/features/voice/utils/ScreenShareCodecDiagnostics';
 import {markScreenShareDecodeFailure} from '@app/features/voice/utils/VideoDecoderCapabilities';
 import {parseVoiceParticipantIdentity} from '@app/features/voice/utils/VoiceParticipantIdentity';
+import {isXboxIdentity} from '@app/features/xbox/XboxIdentity';
 import type {
 	LocalParticipant,
 	LocalTrackPublication,
@@ -395,7 +396,7 @@ export function bindRoomEvents(
 		guard(attemptId, (p: Participant) => {
 			bindParticipantSpeakingEvents(p);
 			dependencies.participants.upsertParticipant(p);
-			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity)) {
+			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity) && !isXboxIdentity(p.identity)) {
 				SoundCommands.playSound(SoundType.ViewerJoin);
 			}
 		}),
@@ -408,7 +409,7 @@ export function bindRoomEvents(
 			dependencies.participants.removeParticipant(p.identity);
 			if (dependencies.connection.isDisconnecting()) return;
 			if (p.identity === room.localParticipant?.identity) return;
-			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity)) {
+			if (!p.identity.startsWith('user_') && !isMusicIdentity(p.identity) && !isXboxIdentity(p.identity)) {
 				SoundCommands.playSound(SoundType.ViewerLeave);
 			}
 		}),
